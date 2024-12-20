@@ -1,0 +1,15 @@
+
+python manage.py
+    startproject adjCHEM
+
+
+cd adjCHEM
+    startapp apputil
+    startapp dcoadd
+    makemigrations
+    migrate
+
+    createsuperuser djChem djChem
+
+    makemigrations dcoadd
+    migrate dcoadd --database dcoadd
