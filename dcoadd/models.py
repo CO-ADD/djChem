@@ -251,7 +251,8 @@ class Assay(AuditModel):
 
     Choice_Dictionary = {
         'assay_type':'Assay_Type',
-        'result_type':'Result_Type',
+        'plate_size':'Plate_Size',
+        'plate_material':'Plate_Material',
     }
 
     ID_SEQUENCE = 'Assay'
@@ -263,13 +264,15 @@ class Assay(AuditModel):
     assay_name = models.CharField(max_length=150, blank=True, verbose_name = "Name")
     assay_type = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Assay Type", on_delete=models.DO_NOTHING,
         db_column="assay_type", related_name="%(class)s_assay_type")
-    result_type = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Result Type", on_delete=models.DO_NOTHING,
-        db_column="result_type", related_name="%(class)s_result_type")
     organism = models.CharField(max_length=50, blank=True, verbose_name = "Organism")
     strain = models.CharField(max_length=50, blank=True, verbose_name = "Strain")
     media = models.CharField(max_length=50, blank=True, verbose_name = "Media")
     additive = models.CharField(max_length=50, blank=True, verbose_name = "Additive")
-    dye = models.CharField(max_length=50, blank=True, verbose_name = "dye")
+    dye = models.CharField(max_length=50, blank=True, verbose_name = "Readout Dye")
+    plate_size = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Plate Size", on_delete=models.DO_NOTHING,
+        db_column="plate_size", related_name="%(class)s_plate_size")
+    plate_material = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Plate Material", on_delete=models.DO_NOTHING,
+        db_column="plate_material", related_name="%(class)s_plate_material")
 
     class Meta:
         app_label = 'dcoadd'
@@ -389,11 +392,7 @@ class Compound(AuditModel):
 #-------------------------------------------------------------------------------------------------
     Choice_Dictionary = {
         'compound_type':'Compound_Type',
-        'compound_source':'Compound_Source',
-        'reg_amount_unit': 'Unit_Amount',
-        'reg_volume_unit':'Unit_Volume',
-        'reg_conc_unit':'Unit_Concentration',
-    #    'stock_volume_unit':'Unit_Volume',
+        'pub_status':'Pub_Status',
     }
 
     ID_SEQUENCE = 'Compound'
@@ -479,27 +478,88 @@ class Compound(AuditModel):
     #         super(Compound, self).save(*args, **kwargs) 
 
 
-# ACTDATA_DOSERESP
-# compound_id
-# testplate_id
-# testwell_id
-# run_id
-# result_type
-# assaytype_id
-# DR, DR_unit, Act_score
-# DMax
-# Data_Quality
+#-------------------------------------------------------------------------------------------------
+class Activity_DoseResponse(AuditModel):
+    """
+    List of Single Conc (Inhibition) Activities 
+    """
+#-------------------------------------------------------------------------------------------------
+    Choice_Dictionary = {
+        'conc_unit':'Unit_Concentration',
+        'conc_type':'Conc_Type',
+        'result_type':'Result_Type',
+        'result_unit':'Unit',
+        'data_quality':'Data_Quality',
+        'pub_status':'Pub_Status',
+    }
 
-# ACTDATA_INHIBITION
-# compound_id
-# testplate_id
-# testwell_id
-# run_id
-# assaytype_id
-# Inhibition, Zscore, Act_score
-# conc, conc_unit
-# Data_Quality
+    udi_key = models.CharField(max_length=24, unique=True, blank=False, verbose_name = "UDI")
 
+    compound_id = models.ForeignKey(Compound, blank=False, verbose_name = "Compound ID", on_delete=models.DO_NOTHING,
+        db_column="compound_id", related_name="%(class)s_compound_id")
+    assay_id = models.ForeignKey(Assay, blank=False, verbose_name = "Assay", on_delete=models.DO_NOTHING,
+        db_column="assay_id", related_name="%(class)s_assay_id")
+    source_id = models.ForeignKey(Source, blank=False, verbose_name = "Source", on_delete=models.DO_NOTHING,
+        db_column="source_id", related_name="%(class)s_source_id")
+    
+    result_type = models.ForeignKey(Dictionary, blank=False, verbose_name = "Result Type", on_delete=models.DO_NOTHING,
+        db_column="result_type", related_name="%(class)s_result_type")
+        
+    result_str = models.CharField(max_length=24, blank=False, verbose_name = "Result ")
+    result_value = models.DecimalField(max_digits=9, decimal_places=2, default=0,verbose_name = "Result Value")
+    result_unit = models.ForeignKey(Dictionary, blank=False, verbose_name = "Result Unit", on_delete=models.DO_NOTHING,
+        db_column="result_unit", related_name="%(class)s_result_unit")
+    result_conc_type = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Conc Type", on_delete=models.DO_NOTHING,
+        db_column="conc_type", related_name="%(class)s_conc_type")
+    
+    dmax = models.DecimalField(max_digits=9, decimal_places=2, default=0,verbose_name = "DMax")
+    act_score = models.DecimalField(max_digits=9, decimal_places=2, default=-1,verbose_name = "Act Score")
+    p_score = models.DecimalField(max_digits=9, decimal_places=2, default=-1,verbose_name = "pScore")
+    data_quality = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Result Type", on_delete=models.DO_NOTHING,
+        db_column="data_quality", related_name="%(class)s_data_quality")
+
+#-------------------------------------------------------------------------------------------------
+class Activity_SingleConc(AuditModel):
+    """
+    List of Single Conc (Inhibition) Activities 
+    """
+#-------------------------------------------------------------------------------------------------
+    Choice_Dictionary = {
+        'conc_unit':'Unit_Concentration',
+        'conc_type':'Conc_Type',
+        'result_type':'Result_Type',
+        'result_unit':'Unit',
+        'data_quality':'Data_Quality',
+        'pub_status':'Pub_Status',
+    }
+
+    udi_key = models.CharField(max_length=24, unique=True, blank=False, verbose_name = "UDI")
+
+    compound_id = models.ForeignKey(Compound, blank=False, verbose_name = "Compound ID", on_delete=models.DO_NOTHING,
+        db_column="compound_id", related_name="%(class)s_compound_id")
+    assay_id = models.ForeignKey(Assay, blank=False, verbose_name = "Assay", on_delete=models.DO_NOTHING,
+        db_column="assay_id", related_name="%(class)s_assay_id")
+    source_id = models.ForeignKey(Source, blank=False, verbose_name = "Source", on_delete=models.DO_NOTHING,
+        db_column="source_id", related_name="%(class)s_source_id")
+    
+    result_type = models.ForeignKey(Dictionary, blank=False, verbose_name = "Result Type", on_delete=models.DO_NOTHING,
+        db_column="result_type", related_name="%(class)s_result_type")
+    
+    conc = models.DecimalField(max_digits=9, decimal_places=2, default=0,verbose_name = "Conc")
+    conc_unit = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Conc Unit", on_delete=models.DO_NOTHING,
+        db_column="conc_unit", related_name="%(class)s_conc_unit")
+    conc_type = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Conc Type", on_delete=models.DO_NOTHING,
+        db_column="conc_type", related_name="%(class)s_conc_type")
+    
+    result_value = models.DecimalField(max_digits=9, decimal_places=2, default=0,verbose_name = "Result Value")
+    result_unit = models.ForeignKey(Dictionary, blank=False, verbose_name = "Result Unit", on_delete=models.DO_NOTHING,
+        db_column="result_unit", related_name="%(class)s_result_unit")
+    
+    zscore = models.DecimalField(max_digits=9, decimal_places=2, default=0,verbose_name = "ZScore")
+    act_score = models.DecimalField(max_digits=9, decimal_places=2, default=-1,verbose_name = "Act Score")
+    data_quality = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Result Type", on_delete=models.DO_NOTHING,
+        db_column="data_quality", related_name="%(class)s_data_quality")
+    
 #-------------------------------------------------------------------------------------------------
 class Testplate(AuditModel):
     """
