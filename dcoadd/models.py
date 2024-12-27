@@ -518,6 +518,19 @@ class Activity_DoseResponse(AuditModel):
     data_quality = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Result Type", on_delete=models.DO_NOTHING,
         db_column="data_quality", related_name="%(class)s_data_quality")
 
+    class Meta:
+        app_label = 'dcoadd'
+        db_table = 'act_doseresponse'
+        ordering=['compound_id']
+        indexes = [
+            models.Index(name="adr_cmp_idx", fields=['compound_id']),
+            models.Index(name="adr_ass_idx", fields=['assay_id']),
+            models.Index(name="adr_src_idx", fields=['source_id']),
+            models.Index(name="adr_rty_idx", fields=['result_type']),
+            models.Index(name="adr_act_idx", fields=['act_score']),
+            models.Index(name="adr_dqc_idx", fields=['data_quality']),
+        ]
+
 #-------------------------------------------------------------------------------------------------
 class Activity_SingleConc(AuditModel):
     """
@@ -559,7 +572,20 @@ class Activity_SingleConc(AuditModel):
     act_score = models.DecimalField(max_digits=9, decimal_places=2, default=-1,verbose_name = "Act Score")
     data_quality = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Result Type", on_delete=models.DO_NOTHING,
         db_column="data_quality", related_name="%(class)s_data_quality")
-    
+
+    class Meta:
+        app_label = 'dcoadd'
+        db_table = 'act_singleconc'
+        ordering=['compound_id']
+        indexes = [
+            models.Index(name="asc_cmp_idx", fields=['compound_id']),
+            models.Index(name="asc_ass_idx", fields=['assay_id']),
+            models.Index(name="asc_src_idx", fields=['source_id']),
+            models.Index(name="asc_rty_idx", fields=['result_type']),
+            models.Index(name="asc_act_idx", fields=['act_score']),
+            models.Index(name="asc_dqc_idx", fields=['data_quality']),
+        ]
+
 #-------------------------------------------------------------------------------------------------
 class Testplate(AuditModel):
     """
