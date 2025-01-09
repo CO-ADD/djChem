@@ -109,8 +109,8 @@ def main(prgArgs,djDir):
                         djObj.compound_id = row['compound_id']
                     djObj.project_id = Project.get(pid)
                     djObj.source_id = Source.get('CO-ADD')
-                    if row['structure_id']:
-                        djObj.structure_id = Chem_Structure.get(row['structure_id'])
+                    djObj.structure_id = Chem_Structure.get(row['structure_id'])
+                    djObj.coadd_id = row['structure_id']
 
                     set_dictFields(djObj,row,cpyFields)
 
