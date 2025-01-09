@@ -414,7 +414,8 @@ class Compound(AuditModel):
     compound_name = models.CharField(max_length=120, blank=True, verbose_name = "Name")
     compound_type = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Type", on_delete=models.DO_NOTHING,
         db_column="compound_type", related_name="%(class)s_compound_type")
-
+    coadd_id = models.CharField(max_length=25, blank=True, verbose_name = "CO-ADD ID")
+    
     project_id = models.ForeignKey(Project, null=True, blank=True, verbose_name = "Project ID", on_delete=models.DO_NOTHING,
         db_column="project_id", related_name="%(class)s_project_id")
     source_id = models.ForeignKey(Source, null=True, blank=True, verbose_name = "Source", on_delete=models.DO_NOTHING,
@@ -434,6 +435,86 @@ class Compound(AuditModel):
     pub_status = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Pub Status", on_delete=models.DO_NOTHING,
         db_column="pub_status", related_name="%(class)s_pub_statust")
     pub_date = models.DateField(null=True, blank=True,  editable=False, verbose_name="Published")
+
+
+#
+    # compound_id = models.CharField(max_length=15, primary_key=True, verbose_name = "Compound ID")
+    # compound_code = models.CharField(max_length=120, blank=True, verbose_name = "Code")
+    # compound_name = models.CharField(max_length=120, blank=True, verbose_name = "Name")
+    # compound_desc = models.CharField(max_length=150, blank=True, verbose_name = "Comment")
+
+    # project_id = models.ForeignKey(Project, null=True, blank=True, verbose_name = "Project ID", on_delete=models.DO_NOTHING,
+    #     db_column="project_id", related_name="%(class)s_project_id")
+
+    # #cmpbatch_id = models.CharField(max_length=15, null=True, blank=True, verbose_name = "CmpBatch ID")
+    # cmpbatch_id = models.ForeignKey(Compound_Batch, null=True, blank=True, verbose_name = "CmpBatch ID", on_delete=models.DO_NOTHING,
+    #     db_column="cmpbatch_id", related_name="%(class)s_cmpbatch_id")
+
+    # compound_type = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Type", on_delete=models.DO_NOTHING,
+    #     db_column="compound_type", related_name="%(class)s_compound_type")
+
+    # compound_source = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Type", on_delete=models.DO_NOTHING,
+    #     db_column="compound_source", related_name="%(class)s_compound_source")
+
+    # # compound_subtypes = ArrayField(models.CharField(max_length=50, null=True, blank=True), 
+    # #                                size=10, verbose_name = "Subtypes", null=True, blank=True)
+
+    # ora_compound_id = models.CharField(max_length=15, blank=True, verbose_name = "Old Compound ID")
+    # ora_project_id = models.CharField(max_length=15, blank=True, verbose_name = "Old Project ID")
+    # ora_compound_type = models.CharField(max_length=150, blank=True, verbose_name = "Old Compound Type")
+
+    # # CO-ADD - Registration ------
+    # reg_smiles = models.CharField(max_length=2048, blank=True, verbose_name = "Reg Smiles")
+    # reg_mw = models.DecimalField(max_digits=12, decimal_places=3, default=0, verbose_name = "Reg MW")
+    # reg_mf = models.CharField(max_length=100, blank=True, verbose_name = "Reg MF")
+    # reg_structure = models.CharField(max_length=2048, blank=True, verbose_name = "Reg Structure")
+    # reg_amount = models.DecimalField(max_digits=9, decimal_places=2, default=0, verbose_name = "Reg Amount")
+    # reg_amount_unit = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Reg Amount Unit", on_delete=models.DO_NOTHING,
+    #     db_column="reg_amount_unit", related_name="%(class)s_reg_amount_unit")
+    # reg_volume = models.DecimalField(max_digits=9, decimal_places=2, default=0, verbose_name = "Reg Volume")
+    # reg_volume_unit = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Reg Volume Unit", on_delete=models.DO_NOTHING,
+    #     db_column="reg_volume_unit", related_name="%(class)s_reg_volume_unit")
+    # reg_conc = models.DecimalField(max_digits=9, decimal_places=2, default=0,verbose_name = "Reg Conc")
+    # reg_conc_unit = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Reg Conc Unit", on_delete=models.DO_NOTHING,
+    #     db_column="reg_conc_unit", related_name="%(class)s_reg_conc_unit")
+    # reg_solvent = models.CharField(max_length=100, blank=True, verbose_name = "Reg Solvent")
+    
+    # # CO-ADD - Stock 
+    # prep_date = models.DateField(null=True, blank=True, verbose_name="Prepared")
+    # # stock_volume = models.DecimalField(max_digits=9, decimal_places=2, default=0, verbose_name = "Stock Volume")
+    # # stock_volume_unit = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Stock Volume Unit", on_delete=models.DO_NOTHING,
+    # #     db_column="stock_amount_unit", related_name="%(class)s_stock_amount_unit")
+    
+    # # CO-ADD - Strcuture Curation 
+    # std_status = models.CharField(max_length=10, blank=True, verbose_name = "Std Status")
+    # std_process = models.CharField(max_length=120, blank=True, verbose_name = "Std Process")
+    # std_issues = models.CharField(max_length=250, blank=True, verbose_name = "Std Issues")
+    # std_smiles = models.CharField(max_length=2048, blank=True, verbose_name = "Std Smiles")
+    # std_nfrag = models.SmallIntegerField(default=0, verbose_name = "Std nFrag")
+    # std_salt = models.CharField(max_length=100, blank=True, verbose_name = "Std Salt")
+    # std_ion = models.CharField(max_length=100, blank=True, verbose_name = "Std Ion")
+    # std_solvent = models.CharField(max_length=100, blank=True, verbose_name = "Std Solvent")
+    # std_metal = models.CharField(max_length=100, blank=True, verbose_name = "Std Metal")
+    # # std_structure_type = ArrayField(models.CharField(max_length=20, null=True, blank=True), 
+    # #                              size=20, verbose_name = "Std Structure Type", null=True, blank=True)
+    # std_structure_type = models.CharField(max_length=400, blank=True, verbose_name = "Std Type")
+
+    # std_smiles_extra = models.CharField(max_length=256, blank=True, verbose_name = "Std Smiles Extra")
+    # std_mw = models.DecimalField(default=0, max_digits=12, decimal_places=3, verbose_name = "Std MW")
+    # std_mw_extra = models.DecimalField(default=0, max_digits=12, decimal_places=3, verbose_name = "Std MW Extra")
+    # std_mf = models.CharField(max_length=100, blank=True, verbose_name = "Std Total MF")
+
+    # # CO-ADD - Link to External ID's
+    # cpoz_sn = models.CharField(max_length=25, blank=True, verbose_name = "CpOz SN")
+    # cpoz_id = models.CharField(max_length=25, blank=True, verbose_name = "CpOz Lib ID")
+    # coadd_id = models.CharField(max_length=25, blank=True, verbose_name = "CO-ADD ID")
+    # chembl_id = models.CharField(max_length=25, blank=True, verbose_name = "ChEMBL ID")
+    # spark_id = models.CharField(max_length=25, blank=True, verbose_name = "SPARK ID")
+
+    # # CO-ADD - Publication
+    # pub_status = models.CharField(max_length=10, blank=True, verbose_name = "Pub Status")
+    # pub_date = models.DateField(null=True, blank=True,  editable=False, verbose_name="Published")
+#
 
     class Meta:
         app_label = 'dcoadd'

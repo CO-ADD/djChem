@@ -51,33 +51,100 @@ def main(prgArgs,djDir):
     logger.info(f"Django Data    : {djDir['dataDir']}")
     logger.info(f"Django Project : {os.environ['DJANGO_SETTINGS_MODULE']}")
 
-    from dcoadd.models import Project, Source
+    from dcoadd.models import Project, Source, Chem_Structure, Compound
     from apputil.utils.set_data import set_Dictionaries,set_dictFields
 
     # ---------------------------------------------------------------------
-    if prgArgs.table == 'Structure':
+    if prgArgs.table == 'Compound':
 
-        OutFile = "UploadStructure_Issues.xlsx"
+        OutFile = "UploadCompound_Issues.xlsx"
 
         logger.info(f"[Upd_djCOADD] Table: {prgArgs.table}") 
         logger.info(f"[Upd_djCOADD] User:  {prgArgs.appuser}") 
 
-        prjSQL = """
-            Select c.compound_id, c.compound_code, c.compound_name, c.compound_type, c.compound_source,
-                c.ora_compound_id,
-                c.std_status, c.std_nfrag, c.std_smiles, c.std_mw, c.std_mf, c.std_issues,
-                c.reg_smiles, c.reg_mw, c.reg_mf,
-                b.structure_id, b.structure_type, b.full_mw, b.full_mf,
-                c.pub_status
-            From  dsample.coadd_compound c
-                Left Join dsample.cmpbatch b on c.cmpbatch_id = b.cmpbatch_id
-            Where b.structure_id is not Null
-            """
+        cmpSQL = """
+                Select c.compound_id, c.compound_code, compound_name, compound_type,
+                    project_id, b.structure_id,
+                    std_status,  std_smiles, std_nfrag, std_salt, std_ion, std_solvent, std_metal, std_structure_type,
+                    pub_status, pub_date
+                From  dsample.coadd_compound c
+                    Left Join dsample.cmpbatch b on c.compound_id = b.cmpbatch_id 
+                """
+    
+        qryPrj = Project.objects.all().values('project_id')
 
+        nEntries = qryPrj.count()
+        logger.info(f" [{prgArgs.table}] Projects: {nEntries}")
+
+        OutNumbers = {'Processed':0,'New Entry':0, 'Upload Entries':0,'Empty Entries':0}
+        OutDict = []
+
+        cpyFields = ['compound_code', 'compound_name',
+                     'std_status', 'std_smiles','std_nfrag','std_salt','std_salt','std_solvent','std_metal','std_structure_type',
+                     'pub_date'
+                     ]
+        dictFields = ['compound_type','pub_status']
+        replaceValues = {'pub_status':{'Portal':'Reported','Processed':'MissingData'},
+    }
+
+        # -----------------------------------------
         pgDB = openCoaddDB(verbose=0)
-        df = pd.DataFrame(pgDB.get_dict_list(prjSQL))
-        logger.info(f"[Projects] {len(df)} ")
+        for e in tqdm(qryPrj, total= nEntries, desc=prgArgs.table):
+
+            pid = e['project_id']
+            qrySQL = cmpSQL + f" Where c.project_id = '{pid}' "
+            df = pd.DataFrame(pgDB.get_dict_list(qrySQL))
+
+            if len(df)>0:
+                for k in replaceValues:
+                    df[k].replace(replaceValues[k],inplace=True)
+
+                for idx,row in df.iterrows():
+
+                    #print(f" {row}")
+                    djObj = Compound.get(row['compound_id'])
+                    if djObj is None:
+                        NewEntry = True
+                        djObj = Compound()
+                        djObj.compound_id = row['compound_id']
+                    djObj.project_id = Project.get(pid)
+                    djObj.source_id = Source.get('CO-ADD')
+                    if row['structure_id']:
+                        djObj.structure_id = Chem_Structure.get(row['structure_id'])
+
+                    set_dictFields(djObj,row,cpyFields)
+
+                    set_Dictionaries(djObj,row,dictFields)
+
+                    validStatus = True
+                    djObj.init_fields()
+                    validDict = djObj.validate_fields()
+                    if validDict:
+                        validStatus = False
+                        row.update(validDict)
+                        logger.warning(f"{djObj.structure_id} {validDict} ")
+                        OutDict.append(row)
+
+                    if validStatus:
+                        if prgArgs.upload:
+                            if NewEntry or prgArgs.overwrite:
+                                #print(f" {djObj.project_id}")
+                                OutNumbers['Upload Entries'] += 1
+                                djObj.save(user=prgArgs.appuser)
+
+
+            OutNumbers['Processed'] += len(df)
+
+
         pgDB.close()
+        if len(OutDict) > 0:
+            logger.info(f"Writing Issues: {OutFile}")
+            outDF = pd.DataFrame(OutDict)
+            outDF.to_excel(OutFile)
+        else:
+            logger.info(f"No Issues")
+
+        logger.info(f"{OutNumbers}")
 
 
 
@@ -116,7 +183,8 @@ if __name__ == "__main__":
     #   uploadDir = "C:/Code/A02_WorkDB/03_Django/adjCOADD/utilities/upload_data/Data"
     #   orgdbDir = "C:/Users/uqjzuegg/The University of Queensland/IMB CO-ADD - OrgDB"
     elif prgArgs.django == 'Work':
-        djDir['djPrj'] = "/home/uqjzuegg/xhome/Code/zdjCode/djCHEM"
+        djDir['djPrj'] = "/home/uqjzuegg/xhome/Code/zdjCode/djChem"
+        djDir['dataDir'] = "/home/uqjzuegg/xhome/Code/zdjCode/djChem/dcoadd/data"
     #     uploadDir = "C:/Data/A02_WorkDB/03_Django/adjCOADD/utilities/upload_data/Data"
     elif prgArgs.django == 'Laptop':
         djDir['djPrj'] = "C:/Code/zdjCode/djCHEM"
