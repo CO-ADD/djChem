@@ -100,7 +100,7 @@ def main(prgArgs,djDir):
                     df[k].replace(replaceValues[k],inplace=True)
 
                 for idx,row in df.iterrows():
-
+                    NewEntry = False
                     #print(f" {row}")
                     djObj = Compound.get(row['compound_id'])
                     if djObj is None:
