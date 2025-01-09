@@ -126,7 +126,7 @@ class AuditModel(models.Model):
     VALID     =  1
     CONFIRMED =  2
 
-    OWNER           = "orgdb" # Defaut username
+    OWNER           = "djChem" # Defaut username
     
 
     # VALID_STATUS 0: Valid (New or Update) to save, -1: Invalid unable to save, 1: Valid no update required 

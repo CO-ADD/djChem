@@ -356,10 +356,11 @@ class Project(AuditModel):
     project_type = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Type", on_delete=models.DO_NOTHING,
         db_column="project_type", related_name="%(class)s_project_type")
     
-    organisation = models.CharField(max_length=150, blank=True, verbose_name = "Organisation")
+    organisation_name = models.CharField(max_length=150, blank=True, verbose_name = "Organisation")
     source_id = models.ForeignKey(Source, null=True, blank=True, verbose_name = "Source", on_delete=models.DO_NOTHING,
         db_column="source_id", related_name="%(class)s_source_id")
-
+    compound_status = models.CharField(max_length=150, blank=True, verbose_name = "Compound Status")
+    data_status = models.CharField(max_length=150, blank=True, verbose_name = "Data Status")
     pub_status = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Pub Status", on_delete=models.DO_NOTHING,
         db_column="pub_status", related_name="%(class)s_pub_statust")
     pub_date = models.DateField(null=True, blank=True,  editable=False, verbose_name="Published")
