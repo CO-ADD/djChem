@@ -241,8 +241,89 @@ class AuditModel(models.Model):
                 super(AuditModel, self).save(*args, **kwargs)
         else:
             super(AuditModel, self).save(*args, **kwargs) 
-         
 
+    #------------------------------------------------
+    def validate_fields(self,**kwargs):
+    #
+    # Validates the instance using full_clean
+    # 
+        retValid = {}
+        try:
+            self.full_clean(**kwargs)
+        except ValidationError as e:
+            for key in e.message_dict:
+                _field = self._meta.get_field(key)
+                #print(f"{key} PK:{_field.primary_key},Null:{_field.null},Blank:{_field.blank}")
+                errMsgList = e.message_dict[key]
+                retMsg = []
+                for errMsg in errMsgList:
+                    #print(f"[Validate] {key} -- {errMsg}")
+        
+                    if not _field.primary_key:
+                        if 'This field cannot be null.' == errMsg: 
+                            if not _field.null:
+                                retMsg.append(errMsg)
+                        elif 'This field cannot be blank.' == errMsg:
+                            if not _field.blank:
+                                retMsg.append(errMsg)
+                        elif 'Ensure that there are no more than' in errMsg:
+                            if _field.get_internal_type() != 'DecimalField':
+                                retMsg.append(errMsg)
+                        else:
+                            retMsg.append(errMsg)
+
+                if len(retMsg) > 0 :
+                    retValid[key] = "; ".join(retMsg)
+                #print(len(e.message_dict[key]))
+                # if e.message_dict[key] == ['This field cannot be null.']:
+                #     if not self._meta.get_field(key).null:
+                #         retValid[key] = ", ".join(e.message_dict[key])
+                # elif e.message_dict[key] == ['This field cannot be blank.']:
+                #     if not self._meta.get_field(key).blank:
+                #         retValid[key] = ", ".join(e.message_dict[key])
+                # else:
+                #     retValid[key] = ", ".join(e.message_dict[key])
+        return(retValid)
+             
+    #------------------------------------------------
+    def init_fields(self, default_Char="", default_Integer=0, default_Decimal=0.0):
+        #
+        # Sets 'None' fields in the instance according to Django guidelines 
+        #   sets CharField    to "" (empty) or 'default' 
+        #   sets IntegerField to 0 or 'default'
+        #   sets DecimalField to 0.0 or 'default'
+        #
+            clFields = {}
+            for field in self._meta.get_fields(include_parents=False):
+                fType = field.get_internal_type()
+                if fType == "IntegerField":
+                    if hasattr(self,field.name):
+                        if getattr(self,field.name) is None:
+                            defValue = default_Integer
+                            fDict = field.deconstruct()[3]
+                            if 'default' in fDict:
+                                defValue = fDict['default']
+                            setattr(self,field.name,defValue)
+                            clFields[field.name]=defValue
+                if fType == "DecimalField":
+                    if hasattr(self,field.name):
+                        if getattr(self,field.name) is None:
+                            defValue = default_Decimal
+                            fDict = field.deconstruct()[3]
+                            if 'default' in fDict:
+                                defValue = fDict['default']
+                            setattr(self,field.name,defValue)
+                            clFields[field.name]=defValue
+                elif fType == "CharField":
+                    if hasattr(self,field.name):
+                        if getattr(self,field.name) is None:
+                            defValue = default_Char
+                            fDict = field.deconstruct()[3]
+                            if 'default' in fDict:
+                                defValue = fDict['default']
+                            setattr(self,field.name,defValue)
+                            clFields[field.name]=defValue
+            return(clFields)
 #-------------------------------------------------------------------------------------------------
 class Dictionary(AuditModel):
 #-------------------------------------------------------------------------------------------------

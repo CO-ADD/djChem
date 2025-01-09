@@ -261,29 +261,33 @@ class Assay(AuditModel):
 
     assay_id = models.CharField(max_length=15, primary_key=True, verbose_name = "Assay ID")
     assay_code = models.CharField(max_length=50, blank=True, verbose_name = "Assay Code")
-    assay_name = models.CharField(max_length=150, blank=True, verbose_name = "Name")
-    assay_type = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Assay Type", on_delete=models.DO_NOTHING,
-        db_column="assay_type", related_name="%(class)s_assay_type")
+    assay_notes = models.CharField(max_length=150, blank=True, verbose_name = "Notes")
+    assay_type = models.CharField(max_length=50, blank=True, verbose_name = "Assay Type")
     organism = models.CharField(max_length=50, blank=True, verbose_name = "Organism")
     strain = models.CharField(max_length=50, blank=True, verbose_name = "Strain")
-    media = models.CharField(max_length=50, blank=True, verbose_name = "Media")
-    additive = models.CharField(max_length=50, blank=True, verbose_name = "Additive")
-    dye = models.CharField(max_length=50, blank=True, verbose_name = "Readout Dye")
-    plate_size = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Plate Size", on_delete=models.DO_NOTHING,
-        db_column="plate_size", related_name="%(class)s_plate_size")
-    plate_material = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Plate Material", on_delete=models.DO_NOTHING,
-        db_column="plate_material", related_name="%(class)s_plate_material")
+    strain_notes = models.CharField(max_length=150, blank=True, verbose_name = "Strain")
+    media = models.CharField(max_length=100, blank=True, verbose_name = "Media")
+    plate_type = models.CharField(max_length=100, blank=True, verbose_name = "Plate type")
+    readout = models.CharField(max_length=50, blank=True, verbose_name = "Readout")
+    readout_dye = models.CharField(max_length=50, blank=True, verbose_name = "Readout Dye")
+    source = models.CharField(max_length=50, blank=True, verbose_name = "Source")
+    source_code = models.CharField(max_length=120, blank=True, verbose_name = "Source Code")
+    reference = models.CharField(max_length=150, blank=True, verbose_name = "Reference")
+    laboratory = models.CharField(max_length=50, blank=True, verbose_name = "Laboratory")
 
     class Meta:
         app_label = 'dcoadd'
         db_table = 'assay'
         ordering=['assay_id']
         indexes = [
-            models.Index(name="ass_nm_idx", fields=['assay_name']),
             models.Index(name="ass_ty_idx", fields=['assay_type']),
             models.Index(name="ass_co_idx", fields=['assay_code']),
+            models.Index(name="ass_org_idx", fields=['organism']),
+            models.Index(name="ass_str_idx", fields=['strain']),
         ]
 
+    def __str__(self):
+        return f"{self.assay_id} {self.assay_code}"
     #------------------------------------------------
     # def save(self, *args, **kwargs):
     #     if not self.assay_id:
