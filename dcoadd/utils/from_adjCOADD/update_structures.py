@@ -168,7 +168,7 @@ if __name__ == "__main__":
     #   uploadDir = "C:/Code/A02_WorkDB/03_Django/adjCOADD/utilities/upload_data/Data"
     #   orgdbDir = "C:/Users/uqjzuegg/The University of Queensland/IMB CO-ADD - OrgDB"
     elif prgArgs.django == 'Work':
-        djDir['djPrj'] = "/home/uqjzuegg/xhome/Code/zdjCode/djCHEM"
+        djDir['djPrj'] = "/home/uqjzuegg/xhome/Code/zdjCode/djChem"
     #     uploadDir = "C:/Data/A02_WorkDB/03_Django/adjCOADD/utilities/upload_data/Data"
     elif prgArgs.django == 'Laptop':
         djDir['djPrj'] = "C:/Code/zdjCode/djCHEM"
