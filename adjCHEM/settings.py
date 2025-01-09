@@ -155,3 +155,7 @@ USE_L10N = False
 
 LOGOUT_REDIRECT_URL="/"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# RDKit Settings
+#--------------------------------------------------------------------
+DJANGO_RDKIT_MOL_SERIALIZATION = "TEXT"
