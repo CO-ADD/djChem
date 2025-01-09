@@ -351,10 +351,11 @@ class Dictionary(AuditModel):
         ]
     #------------------------------------------------
     def __str__(self) -> str:
-        return str(self.dict_value)
+        return f"{self.dict_value}  {self.dict_class}"
+
 
     def __repr__(self) -> str:
-        return f"{self.dict_value}|{self.dict_desc}"
+        return f"{self.dict_value}|{self.dict_desc} {self.dict_class}"
         #return f"[{self.dict_class}] {self.dict_value} ({self.dict_desc})"
 
     def strtml(self)-> str:

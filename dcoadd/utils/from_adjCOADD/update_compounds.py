@@ -51,7 +51,7 @@ def main(prgArgs,djDir):
     logger.info(f"Django Data    : {djDir['dataDir']}")
     logger.info(f"Django Project : {os.environ['DJANGO_SETTINGS_MODULE']}")
 
-    from dcoadd.models import Project, Source, Chem_Structure
+    from dcoadd.models import Project, Source
     from apputil.utils.set_data import set_Dictionaries,set_dictFields
 
     # ---------------------------------------------------------------------
@@ -62,74 +62,22 @@ def main(prgArgs,djDir):
         logger.info(f"[Upd_djCOADD] Table: {prgArgs.table}") 
         logger.info(f"[Upd_djCOADD] User:  {prgArgs.appuser}") 
 
-        strSQL = """
-                Select distinct s.structure_id, s.structure_code, s.structure_name, s.structure_type,
-                    s.nfrag, s.charge, s.smol
-                From  dsample.coadd_compound c
-                    Left Join dsample.cmpbatch b on c.cmpbatch_id = b.cmpbatch_id 
-                    Left Join dchem.chem_structure s  on b.structure_id = s.structure_id  
-                where s.structure_id is not Null             
-                """
+        prjSQL = """
+            Select c.compound_id, c.compound_code, c.compound_name, c.compound_type, c.compound_source,
+                c.ora_compound_id,
+                c.std_status, c.std_nfrag, c.std_smiles, c.std_mw, c.std_mf, c.std_issues,
+                c.reg_smiles, c.reg_mw, c.reg_mf,
+                b.structure_id, b.structure_type, b.full_mw, b.full_mf,
+                c.pub_status
+            From  dsample.coadd_compound c
+                Left Join dsample.cmpbatch b on c.cmpbatch_id = b.cmpbatch_id
+            Where b.structure_id is not Null
+            """
 
-        qryPrj = Project.objects.all().values('project_id')
-
-        nEntries = qryPrj.count()
-        logger.info(f" [{prgArgs.table}] Projects: {nEntries}")
-
-
-        OutNumbers = {'Processed':0,'New Entry':0, 'Upload Entries':0,'Empty Entries':0}
-        OutDict = []
-
-        cpyFields = ['structure_code', 'structure_name','nfrag', 'charge']
-        #dictFields = ['structure_type', ]
-        # -----------------------------------------
         pgDB = openCoaddDB(verbose=0)
-        for e in tqdm(qryPrj, total= nEntries, desc=prgArgs.table):
-
-            pid = e['project_id']
-            qrySQL = strSQL + f" and c.project_id = '{pid}' "
-            df = pd.DataFrame(pgDB.get_dict_list(qrySQL))
-
-            for idx,row in df.iterrows():
-                djObj = Chem_Structure.get(row['structure_id'])
-                if djObj is None:
-                    NewEntry = True
-                    djObj = Chem_Structure()
-                    djObj.structure_id = row['structure_id']
-                djObj.set_molecule(row['smol'])
-                set_dictFields(djObj,row,cpyFields)
-
-                #set_Dictionaries(djObj,row,dictFields)
-
-                validStatus = True
-                djObj.init_fields()
-                validDict = djObj.validate_fields()
-                if validDict:
-                    validStatus = False
-                    row.update(validDict)
-                    logger.warning(f"{djObj.structure_id} {validDict} ")
-                    OutDict.append(row)
-
-                if validStatus:
-                    if prgArgs.upload:
-                        if NewEntry or prgArgs.overwrite:
-                            #print(f" {djObj.project_id}")
-                            OutNumbers['Upload Entries'] += 1
-                            djObj.save(user=prgArgs.appuser)
-
-
-            OutNumbers['Processed'] += len(df)
-
-
+        df = pd.DataFrame(pgDB.get_dict_list(prjSQL))
+        logger.info(f"[Projects] {len(df)} ")
         pgDB.close()
-        if len(OutDict) > 0:
-            logger.info(f"Writing Issues: {OutFile}")
-            outDF = pd.DataFrame(OutDict)
-            outDF.to_excel(OutFile)
-        else:
-            logger.info(f"No Issues")
-
-        logger.info(f"{OutNumbers}")
 
 
 

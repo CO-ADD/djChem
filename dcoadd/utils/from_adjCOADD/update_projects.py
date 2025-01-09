@@ -93,39 +93,38 @@ def main(prgArgs,djDir):
         for idx,row in tqdm(df.iterrows(), total=df.shape[0]):
             OutNumbers['Processed'] += 1
             
-            if row['pub_status'] == 'Public':
-                validStatus = True
-                NewEntry = False
-                if row['compound_status']:
-                    row['compound_status'] = '; '.join(row['compound_status'])
-                if row['data_status']:
-                    row['data_status'] = '; '.join(row['data_status'])
+            validStatus = True
+            NewEntry = False
+            if row['compound_status']:
+                row['compound_status'] = '; '.join(row['compound_status'])
+            if row['data_status']:
+                row['data_status'] = '; '.join(row['data_status'])
 
-                djObj = Project.get(row['project_id'])
-                if djObj is None:
-                    NewEntry = True
-                    djObj = Project()
-                    djObj.project_id = row['project_id']
-                    djObj.source_id = Source.get('SRC00001')
-                    
-                set_dictFields(djObj,row,cpyFields)
-                set_Dictionaries(djObj,row,dictFields)
+            djObj = Project.get(row['project_id'])
+            if djObj is None:
+                NewEntry = True
+                djObj = Project()
+                djObj.project_id = row['project_id']
+                djObj.source_id = Source.get('SRC00001')
+                
+            set_dictFields(djObj,row,cpyFields)
+            set_Dictionaries(djObj,row,dictFields)
 
-                # Validate and Save
-                djObj.init_fields()
-                validDict = djObj.validate_fields()
-                if validDict:
-                    validStatus = False
-                    row.update(validDict)
-                    logger.warning(f"{djObj.project_id} {validDict} ")
-                    OutDict.append(row)
-                #print(f" {validStatus} {prgArgs.upload}")
-                if validStatus:
-                    if prgArgs.upload:
-                        if NewEntry or prgArgs.overwrite:
-                            #print(f" {djObj.project_id}")
-                            OutNumbers['Upload Entries'] += 1
-                            djObj.save(user=prgArgs.appuser)
+            # Validate and Save
+            djObj.init_fields()
+            validDict = djObj.validate_fields()
+            if validDict:
+                validStatus = False
+                row.update(validDict)
+                logger.warning(f"{djObj.project_id} {validDict} ")
+                OutDict.append(row)
+            #print(f" {validStatus} {prgArgs.upload}")
+            if validStatus:
+                if prgArgs.upload:
+                    if NewEntry or prgArgs.overwrite:
+                        #print(f" {djObj.project_id}")
+                        OutNumbers['Upload Entries'] += 1
+                        djObj.save(user=prgArgs.appuser)
 
         if len(OutDict) > 0:
             logger.info(f"Writing Issues: {OutFile}")
