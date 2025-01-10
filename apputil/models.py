@@ -235,7 +235,7 @@ class AuditModel(models.Model):
         #
         # Checks for PK
         #
-        if not self.pk:
+        if not self.pk and self.ID_SEQUENCE is not None:
             self.pk = self.next_id()
             if self.pk: 
                 super(AuditModel, self).save(*args, **kwargs)

@@ -21,6 +21,9 @@ from apputil.models import AuditModel, Dictionary, ApplicationUser
 #from dchem.models import Chem_Structure
 from adjCHEM.constants import *
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 #=================================================================================================
 class Assay(AuditModel):
@@ -68,6 +71,21 @@ class Assay(AuditModel):
 
     def __str__(self):
         return f"{self.assay_id} {self.assay_code}"
+    
+    #------------------------------------------------
+    @classmethod
+    def get(cls,AssayID, SourceName=None, SourceCode=None,verbose=0):
+        try:
+            if SourceName and SourceCode:
+                retInstance = cls.objects.get(source_code = SourceCode, source = SourceName)
+            else:
+                retInstance = cls.objects.get(assay_id=AssayID)
+        except:
+            if verbose:
+                logger.warning(f"[Assay Not Found] {AssayID} or {SourceName} {SourceCode}")
+            retInstance = None
+        return(retInstance)
+
     #------------------------------------------------
     # def save(self, *args, **kwargs):
     #     if not self.assay_id:
@@ -106,6 +124,21 @@ class Source(AuditModel):
             models.Index(name="src_pn_idx", fields=['source_name']),
             models.Index(name="src_pt_idx", fields=['source_type']),
         ]
+
+
+    #------------------------------------------------
+    @classmethod
+    def get(cls,SourceID, SourceName=None,verbose=0):
+        try:
+            if SourceName :
+                retInstance = cls.objects.get(source_name = SourceName)
+            else:
+                retInstance = cls.objects.get(source_id=SourceID)
+        except:
+            if verbose:
+                logger.warning(f"[Source Not Found] {SourceID} or {SourceName}")
+            retInstance = None
+        return(retInstance)
 
     #------------------------------------------------
     # def save(self, *args, **kwargs):
@@ -270,7 +303,7 @@ class Chem_Structure(AuditModel):
 
     #------------------------------------------------
     @classmethod
-    def get(cls,StructureID=None,StructureName=None,verbose=0):
+    def get(cls, StructureID=None, StructureName=None, verbose=0):
     # Returns an instance by structure_id or structure_name
         try:
             if StructureID:
@@ -436,86 +469,6 @@ class Compound(AuditModel):
         db_column="pub_status", related_name="%(class)s_pub_statust")
     pub_date = models.DateField(null=True, blank=True,  editable=False, verbose_name="Published")
 
-
-#
-    # compound_id = models.CharField(max_length=15, primary_key=True, verbose_name = "Compound ID")
-    # compound_code = models.CharField(max_length=120, blank=True, verbose_name = "Code")
-    # compound_name = models.CharField(max_length=120, blank=True, verbose_name = "Name")
-    # compound_desc = models.CharField(max_length=150, blank=True, verbose_name = "Comment")
-
-    # project_id = models.ForeignKey(Project, null=True, blank=True, verbose_name = "Project ID", on_delete=models.DO_NOTHING,
-    #     db_column="project_id", related_name="%(class)s_project_id")
-
-    # #cmpbatch_id = models.CharField(max_length=15, null=True, blank=True, verbose_name = "CmpBatch ID")
-    # cmpbatch_id = models.ForeignKey(Compound_Batch, null=True, blank=True, verbose_name = "CmpBatch ID", on_delete=models.DO_NOTHING,
-    #     db_column="cmpbatch_id", related_name="%(class)s_cmpbatch_id")
-
-    # compound_type = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Type", on_delete=models.DO_NOTHING,
-    #     db_column="compound_type", related_name="%(class)s_compound_type")
-
-    # compound_source = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Type", on_delete=models.DO_NOTHING,
-    #     db_column="compound_source", related_name="%(class)s_compound_source")
-
-    # # compound_subtypes = ArrayField(models.CharField(max_length=50, null=True, blank=True), 
-    # #                                size=10, verbose_name = "Subtypes", null=True, blank=True)
-
-    # ora_compound_id = models.CharField(max_length=15, blank=True, verbose_name = "Old Compound ID")
-    # ora_project_id = models.CharField(max_length=15, blank=True, verbose_name = "Old Project ID")
-    # ora_compound_type = models.CharField(max_length=150, blank=True, verbose_name = "Old Compound Type")
-
-    # # CO-ADD - Registration ------
-    # reg_smiles = models.CharField(max_length=2048, blank=True, verbose_name = "Reg Smiles")
-    # reg_mw = models.DecimalField(max_digits=12, decimal_places=3, default=0, verbose_name = "Reg MW")
-    # reg_mf = models.CharField(max_length=100, blank=True, verbose_name = "Reg MF")
-    # reg_structure = models.CharField(max_length=2048, blank=True, verbose_name = "Reg Structure")
-    # reg_amount = models.DecimalField(max_digits=9, decimal_places=2, default=0, verbose_name = "Reg Amount")
-    # reg_amount_unit = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Reg Amount Unit", on_delete=models.DO_NOTHING,
-    #     db_column="reg_amount_unit", related_name="%(class)s_reg_amount_unit")
-    # reg_volume = models.DecimalField(max_digits=9, decimal_places=2, default=0, verbose_name = "Reg Volume")
-    # reg_volume_unit = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Reg Volume Unit", on_delete=models.DO_NOTHING,
-    #     db_column="reg_volume_unit", related_name="%(class)s_reg_volume_unit")
-    # reg_conc = models.DecimalField(max_digits=9, decimal_places=2, default=0,verbose_name = "Reg Conc")
-    # reg_conc_unit = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Reg Conc Unit", on_delete=models.DO_NOTHING,
-    #     db_column="reg_conc_unit", related_name="%(class)s_reg_conc_unit")
-    # reg_solvent = models.CharField(max_length=100, blank=True, verbose_name = "Reg Solvent")
-    
-    # # CO-ADD - Stock 
-    # prep_date = models.DateField(null=True, blank=True, verbose_name="Prepared")
-    # # stock_volume = models.DecimalField(max_digits=9, decimal_places=2, default=0, verbose_name = "Stock Volume")
-    # # stock_volume_unit = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Stock Volume Unit", on_delete=models.DO_NOTHING,
-    # #     db_column="stock_amount_unit", related_name="%(class)s_stock_amount_unit")
-    
-    # # CO-ADD - Strcuture Curation 
-    # std_status = models.CharField(max_length=10, blank=True, verbose_name = "Std Status")
-    # std_process = models.CharField(max_length=120, blank=True, verbose_name = "Std Process")
-    # std_issues = models.CharField(max_length=250, blank=True, verbose_name = "Std Issues")
-    # std_smiles = models.CharField(max_length=2048, blank=True, verbose_name = "Std Smiles")
-    # std_nfrag = models.SmallIntegerField(default=0, verbose_name = "Std nFrag")
-    # std_salt = models.CharField(max_length=100, blank=True, verbose_name = "Std Salt")
-    # std_ion = models.CharField(max_length=100, blank=True, verbose_name = "Std Ion")
-    # std_solvent = models.CharField(max_length=100, blank=True, verbose_name = "Std Solvent")
-    # std_metal = models.CharField(max_length=100, blank=True, verbose_name = "Std Metal")
-    # # std_structure_type = ArrayField(models.CharField(max_length=20, null=True, blank=True), 
-    # #                              size=20, verbose_name = "Std Structure Type", null=True, blank=True)
-    # std_structure_type = models.CharField(max_length=400, blank=True, verbose_name = "Std Type")
-
-    # std_smiles_extra = models.CharField(max_length=256, blank=True, verbose_name = "Std Smiles Extra")
-    # std_mw = models.DecimalField(default=0, max_digits=12, decimal_places=3, verbose_name = "Std MW")
-    # std_mw_extra = models.DecimalField(default=0, max_digits=12, decimal_places=3, verbose_name = "Std MW Extra")
-    # std_mf = models.CharField(max_length=100, blank=True, verbose_name = "Std Total MF")
-
-    # # CO-ADD - Link to External ID's
-    # cpoz_sn = models.CharField(max_length=25, blank=True, verbose_name = "CpOz SN")
-    # cpoz_id = models.CharField(max_length=25, blank=True, verbose_name = "CpOz Lib ID")
-    # coadd_id = models.CharField(max_length=25, blank=True, verbose_name = "CO-ADD ID")
-    # chembl_id = models.CharField(max_length=25, blank=True, verbose_name = "ChEMBL ID")
-    # spark_id = models.CharField(max_length=25, blank=True, verbose_name = "SPARK ID")
-
-    # # CO-ADD - Publication
-    # pub_status = models.CharField(max_length=10, blank=True, verbose_name = "Pub Status")
-    # pub_date = models.DateField(null=True, blank=True,  editable=False, verbose_name="Published")
-#
-
     class Meta:
         app_label = 'dcoadd'
         db_table = 'compound'
@@ -570,21 +523,20 @@ class Compound(AuditModel):
 
 
 #-------------------------------------------------------------------------------------------------
-class Activity_DoseResponse(AuditModel):
+class Activity_Compound_DoseResponse(AuditModel):
     """
     List of Single Conc (Inhibition) Activities 
     """
 #-------------------------------------------------------------------------------------------------
     Choice_Dictionary = {
-        'conc_unit':'Unit_Concentration',
-        'conc_type':'Conc_Type',
+        'result_unit':'Unit_Concentration',
         'result_type':'Result_Type',
-        'result_unit':'Unit',
-        'data_quality':'Data_Quality',
         'pub_status':'Pub_Status',
     }
 
-    udi_key = models.CharField(max_length=24, unique=True, blank=False, verbose_name = "UDI")
+    ID_SEQUENCE = None
+
+    #udi_key = models.CharField(max_length=24, unique=True, blank=False, verbose_name = "UDI")
 
     compound_id = models.ForeignKey(Compound, blank=False, verbose_name = "Compound ID", on_delete=models.DO_NOTHING,
         db_column="compound_id", related_name="%(class)s_compound_id")
@@ -592,35 +544,130 @@ class Activity_DoseResponse(AuditModel):
         db_column="assay_id", related_name="%(class)s_assay_id")
     source_id = models.ForeignKey(Source, blank=False, verbose_name = "Source", on_delete=models.DO_NOTHING,
         db_column="source_id", related_name="%(class)s_source_id")
-    
+
+
+    # Activity Summary
+    act_types = models.CharField(max_length=250, blank=True, verbose_name = "Active Types")
+    n_assays = models.SmallIntegerField(default=-1, blank=True, verbose_name = "#Assay")
+    n_actives = models.SmallIntegerField(default=-1, blank=True, verbose_name = "#Actives")
+    act_score_ave = models.DecimalField(default=-1, max_digits=10, decimal_places=2, verbose_name = "Act Score Ave")
+    pscore_ave = models.DecimalField(default=-1, max_digits=10, decimal_places=2, verbose_name = "pScore Ave")
+
+    inhibit_max_ave = models.DecimalField(default=-1, max_digits=9, decimal_places=3, verbose_name = "Inhibition Max Ave")
     result_type = models.ForeignKey(Dictionary, blank=False, verbose_name = "Result Type", on_delete=models.DO_NOTHING,
         db_column="result_type", related_name="%(class)s_result_type")
-        
-    result_str = models.CharField(max_length=24, blank=False, verbose_name = "Result ")
+
     result_value = models.DecimalField(max_digits=9, decimal_places=2, default=0,verbose_name = "Result Value")
+    result_prefix = models.CharField(max_length=25, blank=False, verbose_name = "Result Prefix")
+
+    result_max    = models.CharField(max_length=20, blank=False, verbose_name = "Result Max")
+    result_min    = models.CharField(max_length=20, blank=False, verbose_name = "Result Min")
+    result_median = models.CharField(max_length=20, blank=False, verbose_name = "Result Median")
+
     result_unit = models.ForeignKey(Dictionary, blank=False, verbose_name = "Result Unit", on_delete=models.DO_NOTHING,
         db_column="result_unit", related_name="%(class)s_result_unit")
-    result_conc_type = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Conc Type", on_delete=models.DO_NOTHING,
-        db_column="conc_type", related_name="%(class)s_conc_type")
-    
-    dmax = models.DecimalField(max_digits=9, decimal_places=2, default=0,verbose_name = "DMax")
-    act_score = models.DecimalField(max_digits=9, decimal_places=2, default=-1,verbose_name = "Act Score")
-    p_score = models.DecimalField(max_digits=9, decimal_places=2, default=-1,verbose_name = "pScore")
-    data_quality = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Result Type", on_delete=models.DO_NOTHING,
-        db_column="data_quality", related_name="%(class)s_data_quality")
+
+    pub_status = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Pub Status", on_delete=models.DO_NOTHING,
+        db_column="pub_status", related_name="%(class)s_pub_statust")
+    pub_date = models.DateField(null=True, blank=True,  editable=False, verbose_name="Published")
+
 
     class Meta:
         app_label = 'dcoadd'
-        db_table = 'act_doseresponse'
+        db_table = 'act_cmpd_dr'
         ordering=['compound_id']
+        constraints = [
+            models.UniqueConstraint(name='actcmpdr_pk_cst', fields=['compound_id', 'assay_id','source_id'], )
+        ]        
         indexes = [
-            models.Index(name="adr_cmp_idx", fields=['compound_id']),
-            models.Index(name="adr_ass_idx", fields=['assay_id']),
-            models.Index(name="adr_src_idx", fields=['source_id']),
-            models.Index(name="adr_rty_idx", fields=['result_type']),
-            models.Index(name="adr_act_idx", fields=['act_score']),
-            models.Index(name="adr_dqc_idx", fields=['data_quality']),
+            models.Index(name="actcmpdr_cmp_idx", fields=['compound_id']),
+            models.Index(name="actcmpdr_ass_idx", fields=['assay_id']),
+            models.Index(name="actcmpdr_src_idx", fields=['source_id']),
+            models.Index(name="actcmpdr_act_idx", fields=['act_score_ave']),
+            models.Index(name="actcmpdr_pscr_idx", fields=['pscore_ave']),
+            models.Index(name="actcmpdr_dmax_idx", fields=['inhibit_max_ave']),
+            models.Index(name="actcmpdr_rtyp_idx", fields=['result_type']),
+            models.Index(name="actcmpdr_rval_idx", fields=['result_value']),
+            models.Index(name="actcmpdr_rpre_idx", fields=['result_prefix']),
         ]
+
+class Activity_Structure_DoseResponse(AuditModel):
+    """
+    List of Single Conc (Inhibition) Activities 
+    """
+#-------------------------------------------------------------------------------------------------
+    Choice_Dictionary = {
+        'result_unit':'Unit_Concentration',
+        'result_type':'Result_Type',
+        'pub_status':'Pub_Status',
+    }
+
+    ID_SEQUENCE = None
+
+    #udi_key = models.CharField(max_length=24, unique=True, blank=False, verbose_name = "UDI")
+
+    structure_id = models.ForeignKey(Chem_Structure, blank=False, verbose_name = "Structure ID", on_delete=models.DO_NOTHING,
+        db_column="structure_id", related_name="%(class)s_structure_id")
+    assay_id = models.ForeignKey(Assay, blank=False, verbose_name = "Assay", on_delete=models.DO_NOTHING,
+        db_column="assay_id", related_name="%(class)s_assay_id")
+    source_id = models.ForeignKey(Source, blank=False, verbose_name = "Source", on_delete=models.DO_NOTHING,
+        db_column="source_id", related_name="%(class)s_source_id")
+
+    # Activity Summary
+    act_types = models.CharField(max_length=250, blank=True, verbose_name = "Active Types")
+    n_assays = models.SmallIntegerField(default=-1, blank=True, verbose_name = "#Assay")
+    n_actives = models.SmallIntegerField(default=-1, blank=True, verbose_name = "#Actives")
+    act_score_ave = models.DecimalField(default=-1, max_digits=10, decimal_places=2, verbose_name = "Act Score Ave")
+    pscore_ave = models.DecimalField(default=-1, max_digits=10, decimal_places=2, verbose_name = "pScore Ave")
+
+    inhibit_max_ave = models.DecimalField(default=-1, max_digits=9, decimal_places=3, verbose_name = "Inhibition Max Ave")
+    result_type = models.ForeignKey(Dictionary, blank=False, verbose_name = "Result Type", on_delete=models.DO_NOTHING,
+        db_column="result_type", related_name="%(class)s_result_type")
+
+    result_value = models.DecimalField(max_digits=9, decimal_places=2, default=0,verbose_name = "Result Value")
+    result_prefix = models.CharField(max_length=25, blank=False, verbose_name = "Result Prefix")
+
+    result_max    = models.CharField(max_length=20, blank=False, verbose_name = "Result Max")
+    result_min    = models.CharField(max_length=20, blank=False, verbose_name = "Result Min")
+    result_median = models.CharField(max_length=20, blank=False, verbose_name = "Result Median")
+
+    result_unit = models.ForeignKey(Dictionary, blank=False, verbose_name = "Result Unit", on_delete=models.DO_NOTHING,
+        db_column="result_unit", related_name="%(class)s_result_unit")
+
+    pub_status = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Pub Status", on_delete=models.DO_NOTHING,
+        db_column="pub_status", related_name="%(class)s_pub_statust")
+    pub_date = models.DateField(null=True, blank=True,  editable=False, verbose_name="Published")
+
+
+    class Meta:
+        app_label = 'dcoadd'
+        db_table = 'act_struct_dr'
+        ordering=['structure_id']
+        constraints = [
+            models.UniqueConstraint(name='actstrdr_pk_cst', fields=['structure_id', 'assay_id','source_id'], )
+        ]        
+        indexes = [
+            models.Index(name="actstrdr_cmp_idx", fields=['structure_id']),
+            models.Index(name="actstrdr_ass_idx", fields=['assay_id']),
+            models.Index(name="actstrdr_src_idx", fields=['source_id']),
+            models.Index(name="actstrdr_act_idx", fields=['act_score_ave']),
+            models.Index(name="actstrdr_pscr_idx", fields=['pscore_ave']),
+            models.Index(name="actstrdr_dmax_idx", fields=['inhibit_max_ave']),
+            models.Index(name="actstrdr_rtyp_idx", fields=['result_type']),
+            models.Index(name="actstrdr_rval_idx", fields=['result_value']),
+            models.Index(name="actstrdr_rpre_idx", fields=['result_prefix']),
+        ]
+
+    #------------------------------------------------
+    @classmethod
+    def get(cls,StructureID, AssayID, SourceID,verbose=0):
+        try:
+            retInstance = cls.objects.get(structure_id = StructureID, assay_id = AssayID, source_id= SourceID)
+        except:
+            if verbose:
+                logger.warning(f"[ActStructureDR Not Found] {StructureID} {AssayID} {SourceID}")
+            retInstance = None
+        return(retInstance)
 
 #-------------------------------------------------------------------------------------------------
 class Activity_SingleConc(AuditModel):

@@ -1,3 +1,4 @@
+#
 import os, sys
 import datetime
 import csv
@@ -16,7 +17,7 @@ import django
 # Logger ----------------------------------------------------------------
 import logging
 logTime= datetime.datetime.now()
-logName = "Upload_Assay_Xlsx"
+logName = "Upload_ActDR"
 logFileName = os.path.join("log",f"x{logName}_{logTime:%Y%m%d_%H%M%S}.log")
 logLevel = logging.INFO 
 
@@ -34,7 +35,6 @@ def openCoaddDB(User='coadd', Passwd='MtMaroon23',DataBase="coadd",verbose=1):
     dbPG.open(User,Passwd,"imb-coadd-db.imb.uq.edu.au",DataBase,verbose=verbose)
     return(dbPG)
 
-        
 #-----------------------------------------------------------------------------
 def main(prgArgs,djDir):
 
@@ -51,90 +51,105 @@ def main(prgArgs,djDir):
     logger.info(f"Django Data    : {djDir['dataDir']}")
     logger.info(f"Django Project : {os.environ['DJANGO_SETTINGS_MODULE']}")
 
-    from dcoadd.models import Project, Source, Chem_Structure, Compound
+    from dcoadd.models import (Project, Source, Chem_Structure, Compound, Assay,
+                               Activity_Structure_DoseResponse,)
     from apputil.utils.set_data import set_Dictionaries,set_dictFields
+    from apputil.utils.bio_data import split_XC50
 
     # ---------------------------------------------------------------------
-    if prgArgs.table == 'Compound':
+    if prgArgs.table == 'ActStructureDR':
 
-        OutFile = "UploadCompound_Issues.xlsx"
+        OutFile = f"Upload_{prgArgs.table}_Issues.xlsx"
 
         logger.info(f"[Upd_djCOADD] Table: {prgArgs.table}") 
         logger.info(f"[Upd_djCOADD] User:  {prgArgs.appuser}") 
 
-        cmpSQL = """
-                Select c.compound_id, c.compound_code, compound_name, compound_type,
-                    project_id, b.structure_id,
-                    std_status,  std_smiles, std_nfrag, std_salt, std_ion, std_solvent, std_metal, std_structure_type,
-                    pub_status, pub_date
-                From  dsample.coadd_compound c
-                    Left Join dsample.cmpbatch b on c.compound_id = b.cmpbatch_id 
+        qryStr = Chem_Structure.objects.all().values('structure_id')
+        nEntries = qryStr.count()
+        logger.info(f" [{prgArgs.table}] Structures: {nEntries}")
+
+        entrySQL = """
+                Select dr.structure_id, dr.sum_assay_id,
+                    dr.n_assays, dr.n_actives, dr.act_types,  dr.act_score_ave, dr.pscore_ave,
+                    dr.inhibit_max_ave,
+                    dr.drval_type result_type, dr.drval_unit result_unit,
+                    dr.drval_max result_max, dr.drval_min result_min, dr.drval_median result_median, dr.drval_unit result_unit
+                From  dsummary.sum_structure_dr dr
                 """
-    
-        qryPrj = Project.objects.all().values('project_id')
-
-        nEntries = qryPrj.count()
-        logger.info(f" [{prgArgs.table}] Projects: {nEntries}")
-
-        OutNumbers = {'Processed':0,'New Entry':0, 'Upload Entries':0,'Empty Entries':0}
-        OutDict = []
-
-        cpyFields = ['compound_code', 'compound_name',
-                     'std_status', 'std_smiles','std_nfrag','std_salt','std_salt','std_solvent','std_metal','std_structure_type',
+        cpyFields = ['n_assays', 'n_actives','act_types', 'act_score_ave','pscore_ave','inhibit_max_ave',
+                     'result_max', 'result_min', 'result_median',
                      'pub_date'
-                     ]
-        dictFields = ['compound_type','pub_status']
-        replaceValues = {'pub_status':{'Portal':'Reported','Processed':'MissingData'},
-    }
+                ]
+        dictFields = ['pub_status','result_unit','result_type' ]
 
-        # -----------------------------------------
-        pgDB = openCoaddDB(verbose=0)
-        for e in tqdm(qryPrj, total= nEntries, desc=prgArgs.table):
+        SourceName = 'CO-ADD'
+        djSource = Source.get(None,SourceName)
 
-            pid = e['project_id']
-            qrySQL = cmpSQL + f" Where c.project_id = '{pid}' "
-            df = pd.DataFrame(pgDB.get_dict_list(qrySQL))
+        if djSource is None:
+            logger.error(f" Source {SourceName} not Found")
 
-            if len(df)>0:
-                for k in replaceValues:
-                    df[k].replace(replaceValues[k],inplace=True)
+        else:
+            OutNumbers = {'Processed':0, 'Empty':0, 'Failed':0, 'New':0, 'Uploaded':0,}
+            OutDict = []
+
+            pgDB = openCoaddDB(verbose=0)
+            for e in tqdm(qryStr, total= nEntries, desc=prgArgs.table):
+                sid = e['structure_id']
+                qrySQL = entrySQL + f" Where dr.structure_id = '{sid}' "
+                df = pd.DataFrame(pgDB.get_dict_list(qrySQL))
 
                 for idx,row in df.iterrows():
-                    NewEntry = False
-                    #print(f" {row}")
-                    djObj = Compound.get(row['compound_id'])
-                    if djObj is None:
-                        NewEntry = True
-                        djObj = Compound()
-                        djObj.compound_id = row['compound_id']
-                    djObj.project_id = Project.get(pid)
-                    djObj.source_id = Source.get('CO-ADD')
-                    djObj.structure_id = Chem_Structure.get(row['structure_id'])
-                    #djObj.coadd_id = row['structure_id']
-
-                    set_dictFields(djObj,row,cpyFields)
-
-                    set_Dictionaries(djObj,row,dictFields)
-
+                    #print(row)
                     validStatus = True
-                    djObj.init_fields()
-                    validDict = djObj.validate_fields()
-                    if validDict:
-                        validStatus = False
-                        row.update(validDict)
-                        logger.warning(f"{djObj.structure_id} {validDict} ")
+                    NewEntry = False
+                    djAssay = Assay.get(None,SourceName,row['sum_assay_id'])
+                    djStructure = Chem_Structure.get(row['structure_id'])
+
+                    if djAssay and djStructure and djSource: 
+                        
+                        djObj = Activity_Structure_DoseResponse.get(djStructure,djAssay,djSource)
+                        if djObj is None:
+                            NewEntry = True
+                            djObj = Activity_Structure_DoseResponse()
+                            djObj.structure_id  = djStructure
+                            djObj.assay_id  = djAssay
+                            djObj.source_id = djSource
+
+                        set_dictFields(djObj,row,cpyFields)
+                        set_Dictionaries(djObj,row,dictFields)
+
+                        djObj.result_prefix, djObj.result_value,_ = split_XC50(djObj.result_median)
+
+                        validStatus = True
+                        djObj.init_fields()
+                        validDict = djObj.validate_fields()
+                        if validDict:
+                            validStatus = False
+                            OutNumbers['Failed'] += 1
+                            row.update(validDict)
+                            logger.warning(f"{djObj.structure_id} {validDict} ")
+                            OutDict.append(row)
+
+                        if validStatus:
+                            if prgArgs.upload:
+                                if NewEntry or prgArgs.overwrite:
+                                    #print(f" {djObj.project_id}")
+                                    OutNumbers['Uploaded'] += 1
+                                    djObj.save(user=prgArgs.appuser)
+
+                    else:
+                        OutNumbers['Failed'] += 1
+                        if djAssay is None:
+                            row.update({"Warning":f" Assay {row['sum_assay_id']} not Found in {SourceName}"})
+                            #logger.warning(f" {sid} Assay {row['sum_assay_id']} not Found in {SourceName}")
+                        if djStructure is None:
+                            row.update({"Warning":f" Structure  {sid} not Found"})
+                            logger.warning(f" {sid} Structure not Found")
+                        
                         OutDict.append(row)
 
-                    if validStatus:
-                        if prgArgs.upload:
-                            if NewEntry or prgArgs.overwrite:
-                                #print(f" {djObj.project_id}")
-                                OutNumbers['Upload Entries'] += 1
-                                djObj.save(user=prgArgs.appuser)
 
-
-            OutNumbers['Processed'] += len(df)
-
+                OutNumbers['Processed'] += len(df)
 
         pgDB.close()
         if len(OutDict) > 0:
@@ -145,8 +160,6 @@ def main(prgArgs,djDir):
             logger.info(f"No Issues")
 
         logger.info(f"{OutNumbers}")
-
-
 
 #==============================================================================
 if __name__ == "__main__":
