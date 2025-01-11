@@ -64,7 +64,10 @@ def main(prgArgs,djDir):
         logger.info(f"[Upd_djCOADD] Table: {prgArgs.table}") 
         logger.info(f"[Upd_djCOADD] User:  {prgArgs.appuser}") 
 
-        qryStr = Chem_Structure.objects.all().values('structure_id')
+        if int(prgArgs.test)>0:
+            qryStr = Chem_Structure.objects.all().values('structure_id')[:int(prgArgs.test)]
+        else:    
+            qryStr = Chem_Structure.objects.all().values('structure_id')
         nEntries = qryStr.count()
         logger.info(f" [{prgArgs.table}] Structures: {nEntries}")
 
@@ -73,14 +76,16 @@ def main(prgArgs,djDir):
                     dr.n_assays, dr.n_actives, dr.act_types,  dr.act_score_ave, dr.pscore_ave,
                     dr.inhibit_max_ave,
                     dr.drval_type result_type, dr.drval_unit result_unit,
-                    dr.drval_max result_max, dr.drval_min result_min, dr.drval_median result_median, dr.drval_unit result_unit
+                    dr.drval_max result_max, dr.drval_min result_min, dr.drval_median result_median, dr.drval_unit result_unit,
+                    dr.drval_std_geomean result_std_geomean, dr.drval_std_unit result_std_unit
                 From  dsummary.sum_structure_dr dr
                 """
         cpyFields = ['n_assays', 'n_actives','act_types', 'act_score_ave','pscore_ave','inhibit_max_ave',
                      'result_max', 'result_min', 'result_median',
+                     'result_std_geomean',
                      'pub_date'
                 ]
-        dictFields = ['pub_status','result_unit','result_type' ]
+        dictFields = ['pub_status','result_unit','result_std_unit','result_type' ]
 
         SourceName = 'CO-ADD'
         djSource = Source.get(None,SourceName)
