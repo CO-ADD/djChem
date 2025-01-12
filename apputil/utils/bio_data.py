@@ -58,7 +58,7 @@ def ActType_SC(Inhib,ZScore=None,cutoff_Inhib={'A':80,'P':50},cutoff_Zscore={'A'
             actType = 'Partial'
         if Inhib >= cutoff_Inhib['A']:
             actType = 'Active'
-        return(actType)
+    return(actType)
 #-----------------------------------------------------------------------------
 def ActScore_SC(Inhib,ZScore=None,cutoff_Inhib={'A':80,'P':50},cutoff_Zscore={'A':3.5,'P':2.5}):
 #-----------------------------------------------------------------------------

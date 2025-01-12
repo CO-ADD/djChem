@@ -82,7 +82,7 @@ def main(prgArgs,djDir):
                 From  dsummary.sum_structure_sc sc
                 """
         cpyFields = ['n_assays', 'n_actives','act_types', 'act_score_ave',
-                     'inhibition_ave', 'inhibition_std', 'inhibition_min', 'inhibition_max','mscore_ave'
+                     'inhibition_ave', 'inhibition_std', 'inhibition_min', 'inhibition_max','mscore_ave',
                      'pub_date'
                 ]
         dictFields = ['pub_status','result_type' ]
@@ -124,6 +124,7 @@ def main(prgArgs,djDir):
                         row['result_type'] = 'Inhibition'
                         set_dictFields(djObj,row,cpyFields)
                         set_Dictionaries(djObj,row,dictFields)
+                        djObj.set_actscores(ZScore=True)
 
                         validStatus = True
                         djObj.init_fields()

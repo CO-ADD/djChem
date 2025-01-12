@@ -124,6 +124,7 @@ def main(prgArgs,djDir):
                         set_Dictionaries(djObj,row,dictFields)
 
                         djObj.result_prefix, djObj.result_value,_ = split_DR(djObj.result_median)
+                        djObj.set_actscores()
 
                         validStatus = True
                         djObj.init_fields()
