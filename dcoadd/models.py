@@ -16,14 +16,12 @@ from django.contrib.auth.models import AbstractUser
 import pgtrigger
 
 from apputil.models import AuditModel, Dictionary, ApplicationUser
-#from apputil.utils.data import strList_to_List
-#from dcollab.models import Collab_Group, Collab_User
-#from dchem.models import Chem_Structure
+from apputil.utils.bio_data import pScore, ActScore_DR, ActScore_SC
+
 from adjCHEM.constants import *
 
 import logging
 logger = logging.getLogger(__name__)
-
 
 #=================================================================================================
 class Assay(AuditModel):
@@ -610,8 +608,8 @@ class Activity_Structure_DoseResponse(AuditModel):
     act_types = models.CharField(max_length=250, blank=True, verbose_name = "Active Types")
     n_assays = models.SmallIntegerField(default=-1, blank=True, verbose_name = "#Assay")
     n_actives = models.SmallIntegerField(default=-1, blank=True, verbose_name = "#Actives")
-    act_score_ave = models.DecimalField(default=-1, max_digits=10, decimal_places=2, verbose_name = "Act Score Ave")
-    pscore_ave = models.DecimalField(default=-1, max_digits=10, decimal_places=2, verbose_name = "pScore Ave")
+    act_score = models.DecimalField(default=-1, max_digits=10, decimal_places=2, verbose_name = "Act Score")
+    pscore = models.DecimalField(default=-1, max_digits=10, decimal_places=2, verbose_name = "pScore")
 
     inhibit_max_ave = models.DecimalField(default=-1, max_digits=9, decimal_places=3, verbose_name = "Inhibition Max Ave")
     result_type = models.ForeignKey(Dictionary, blank=False, verbose_name = "Result Type", on_delete=models.DO_NOTHING,
@@ -647,8 +645,8 @@ class Activity_Structure_DoseResponse(AuditModel):
             models.Index(name="actstrdr_sid_idx", fields=['structure_id']),
             models.Index(name="actstrdr_ass_idx", fields=['assay_id']),
             models.Index(name="actstrdr_src_idx", fields=['source_id']),
-            models.Index(name="actstrdr_act_idx", fields=['act_score_ave']),
-            models.Index(name="actstrdr_pscr_idx", fields=['pscore_ave']),
+            models.Index(name="actstrdr_act_idx", fields=['act_score']),
+            models.Index(name="actstrdr_pscr_idx", fields=['pscore']),
             models.Index(name="actstrdr_dmax_idx", fields=['inhibit_max_ave']),
             models.Index(name="actstrdr_rtyp_idx", fields=['result_type']),
             models.Index(name="actstrdr_rval_idx", fields=['result_value']),
@@ -666,61 +664,13 @@ class Activity_Structure_DoseResponse(AuditModel):
                 logger.warning(f"[ActStructureDR Not Found] {StructureID} {AssayID} {SourceID}")
             retInstance = None
         return(retInstance)
-
-# #-------------------------------------------------------------------------------------------------
-# class Activity_SingleConc(AuditModel):
-#     """
-#     List of Single Conc (Inhibition) Activities 
-#     """
-# #-------------------------------------------------------------------------------------------------
-#     Choice_Dictionary = {
-#         'conc_unit':'Unit_Concentration',
-#         'conc_type':'Conc_Type',
-#         'result_type':'Result_Type',
-#         'result_unit':'Unit',
-#         'data_quality':'Data_Quality',
-#         'pub_status':'Pub_Status',
-#     }
-
-#     udi_key = models.CharField(max_length=24, unique=True, blank=False, verbose_name = "UDI")
-
-#     compound_id = models.ForeignKey(Compound, blank=False, verbose_name = "Compound ID", on_delete=models.DO_NOTHING,
-#         db_column="compound_id", related_name="%(class)s_compound_id")
-#     assay_id = models.ForeignKey(Assay, blank=False, verbose_name = "Assay", on_delete=models.DO_NOTHING,
-#         db_column="assay_id", related_name="%(class)s_assay_id")
-#     source_id = models.ForeignKey(Source, blank=False, verbose_name = "Source", on_delete=models.DO_NOTHING,
-#         db_column="source_id", related_name="%(class)s_source_id")
     
-#     result_type = models.ForeignKey(Dictionary, blank=False, verbose_name = "Result Type", on_delete=models.DO_NOTHING,
-#         db_column="result_type", related_name="%(class)s_result_type")
-    
-#     conc = models.DecimalField(max_digits=9, decimal_places=2, default=0,verbose_name = "Conc")
-#     conc_unit = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Conc Unit", on_delete=models.DO_NOTHING,
-#         db_column="conc_unit", related_name="%(class)s_conc_unit")
-#     conc_type = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Conc Type", on_delete=models.DO_NOTHING,
-#         db_column="conc_type", related_name="%(class)s_conc_type")
-    
-#     result_value = models.DecimalField(max_digits=9, decimal_places=2, default=0,verbose_name = "Result Value")
-#     result_unit = models.ForeignKey(Dictionary, blank=False, verbose_name = "Result Unit", on_delete=models.DO_NOTHING,
-#         db_column="result_unit", related_name="%(class)s_result_unit")
-    
-#     zscore = models.DecimalField(max_digits=9, decimal_places=2, default=0,verbose_name = "ZScore")
-#     act_score = models.DecimalField(max_digits=9, decimal_places=2, default=-1,verbose_name = "Act Score")
-#     data_quality = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Result Type", on_delete=models.DO_NOTHING,
-#         db_column="data_quality", related_name="%(class)s_data_quality")
+    #------------------------------------------------
+    def set_actscores(self,verbose=0):
+        self.act_score = ActScore_DR(self.result_median,self.result_unit.dict_value,DMax=self.inhibit_max_ave)
+        self.pscore = pScore(self.result_std_geomean,self.result_std_unit.dict_value,self.inhibit_max_ave,MW=0,gtShift=3,drMax2=40)
 
-#     class Meta:
-#         app_label = 'dcoadd'
-#         db_table = 'act_singleconc'
-#         ordering=['compound_id']
-#         indexes = [
-#             models.Index(name="asc_cmp_idx", fields=['compound_id']),
-#             models.Index(name="asc_ass_idx", fields=['assay_id']),
-#             models.Index(name="asc_src_idx", fields=['source_id']),
-#             models.Index(name="asc_rty_idx", fields=['result_type']),
-#             models.Index(name="asc_act_idx", fields=['act_score']),
-#             models.Index(name="asc_dqc_idx", fields=['data_quality']),
-#         ]
+
 
 #-------------------------------------------------------------------------------------------------
 class Activity_Structure_Inhibition(AuditModel):
@@ -749,7 +699,7 @@ class Activity_Structure_Inhibition(AuditModel):
     act_types = models.CharField(max_length=250, blank=True, verbose_name = "Active Tupes")
     n_assays = models.SmallIntegerField(default=-1, blank=True, verbose_name = "#Assay")
     n_actives = models.SmallIntegerField(default=-1, blank=True, verbose_name = "#Actives")
-    act_score_ave = models.DecimalField(default=-1, max_digits=10, decimal_places=2, verbose_name = "Act Score Ave")
+    act_score = models.DecimalField(default=-1, max_digits=10, decimal_places=2, verbose_name = "Act Score")
 
     result_type = models.ForeignKey(Dictionary, blank=False, verbose_name = "Result Type", on_delete=models.DO_NOTHING,
         db_column="result_type", related_name="%(class)s_result_type")
@@ -777,7 +727,7 @@ class Activity_Structure_Inhibition(AuditModel):
             models.Index(name="actstrsc_sid_idx", fields=['structure_id']),
             models.Index(name="actstrsc_ass_idx", fields=['assay_id']),
             models.Index(name="actstrsc_src_idx", fields=['source_id']),
-            models.Index(name="actstrsc_act_idx", fields=['act_score_ave']),
+            models.Index(name="actstrsc_act_idx", fields=['act_score']),
             models.Index(name="actstrsc_iave_idx", fields=['inhibition_ave']),
             models.Index(name="actstrsc_mave_idx", fields=['mscore_ave']),
             models.Index(name="actstrsc_rtyp_idx", fields=['result_type']),
@@ -794,7 +744,14 @@ class Activity_Structure_Inhibition(AuditModel):
                 logger.warning(f"[ActStructureSC Not Found] {StructureID} {AssayID} {SourceID}")
             retInstance = None
         return(retInstance)
-    
+
+    #------------------------------------------------
+    def set_actscores(self,ZScore=False,verbose=0):
+        if ZScore:
+            self.act_score = ActScore_SC(self.inhibition_ave,self.mscore_ave)
+        else:
+            self.act_score = ActScore_SC(self.inhibition_ave)
+
 # #-------------------------------------------------------------------------------------------------
 # class Testplate(AuditModel):
 #     """

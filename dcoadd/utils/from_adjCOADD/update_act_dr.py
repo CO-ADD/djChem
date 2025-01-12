@@ -54,7 +54,7 @@ def main(prgArgs,djDir):
     from dcoadd.models import (Project, Source, Chem_Structure, Compound, Assay,
                                Activity_Structure_DoseResponse,)
     from apputil.utils.set_data import set_Dictionaries,set_dictFields
-    from apputil.utils.bio_data import split_XC50
+    from apputil.utils.bio_data import split_DR
 
     # ---------------------------------------------------------------------
     if prgArgs.table == 'ActStructureDR':
@@ -123,7 +123,7 @@ def main(prgArgs,djDir):
                         set_dictFields(djObj,row,cpyFields)
                         set_Dictionaries(djObj,row,dictFields)
 
-                        djObj.result_prefix, djObj.result_value,_ = split_XC50(djObj.result_median)
+                        djObj.result_prefix, djObj.result_value,_ = split_DR(djObj.result_median)
 
                         validStatus = True
                         djObj.init_fields()

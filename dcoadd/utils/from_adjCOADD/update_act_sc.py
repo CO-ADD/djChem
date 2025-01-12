@@ -54,7 +54,7 @@ def main(prgArgs,djDir):
     from dcoadd.models import (Project, Source, Chem_Structure, Compound, Assay,
                                Activity_Structure_DoseResponse, Activity_Structure_Inhibition)
     from apputil.utils.set_data import set_Dictionaries,set_dictFields
-    from apputil.utils.bio_data import split_XC50
+    from apputil.utils.bio_data import split_DR
 
     # ---------------------------------------------------------------------
     if prgArgs.table == 'ActStructureSC':
@@ -64,7 +64,12 @@ def main(prgArgs,djDir):
         logger.info(f"[Upd_djCOADD] Table: {prgArgs.table}") 
         logger.info(f"[Upd_djCOADD] User:  {prgArgs.appuser}") 
 
-        qryStr = Chem_Structure.objects.all().values('structure_id')
+
+        if int(prgArgs.test)>0:
+            qryStr = Chem_Structure.objects.all().values('structure_id')[:int(prgArgs.test)]
+        else:    
+            qryStr = Chem_Structure.objects.all().values('structure_id')
+
         nEntries = qryStr.count()
         logger.info(f" [{prgArgs.table}] Structures: {nEntries}")
 

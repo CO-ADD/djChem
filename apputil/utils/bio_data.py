@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import math
 import numpy as np
 from django_rdkit.models import *
 from django_rdkit.config import config
@@ -7,6 +8,158 @@ from django.conf import settings
 
 from adjCHEM.constants import COMPOUND_SEP
 import apputil.utils.data as djdata
+
+import logging
+logger = logging.getLogger(__name__)
+
+#-----------------------------------------------------------------------------
+# Scoring Functions
+#-----------------------------------------------------------------------------
+ActScoreDR_Cutoff = {
+    'Invalid':  {'Score':-1,'Code':'-','Desc':'wrong Data'},
+    'Inactive': {'Score':0, 'Code':'I','Desc':'>'},
+    'Partial':  {'Score':1, 'Code':'P','Desc':'> & >= 50%'},
+    'LowActive':{'Score':2, 'Code':'L','Desc':'= & >32'},
+    'Active':   {'Score':3, 'Code':'A','Desc':'= <= & <= 32/20', 'CutOff':{'uM':20,'ug/mL':32,'pct':50}},
+    'Hit':      {'Score':4, 'Code':'H','Desc':'= <= & <= 16/10', 'CutOff':{'uM':10,'ug/mL':16,'pct':20}},
+    'SuperHit': {'Score':5, 'Code':'S','Desc':'= <= & <= 2/1',   'CutOff':{'uM':1,'ug/mL':2,'pct':10}}
+}
+
+ActScoreSC_Cutoff = {
+    'Invalid':  {'Score':-1,'Code':'-','Desc':'wrong Data'},
+    'Inactive': {'Score':0, 'Code':'I','Desc':'Inhib <50 '},
+    'Partial':  {'Score':1, 'Code':'P','Desc':'Inhib >50 & ZScore >= 2.5', 'CutOff': {'Inhib':50, 'ZScore':2.5}},
+    'Active':   {'Score':3, 'Code':'A','Desc':'Inhib >80 & ZScore >= 3.5', 'CutOff':{'Inhib':80, 'ZScore':3.5}},
+    'Unknown':  {'Score':0, 'Code':'S','Desc':'> & >= 50%'},
+}
+
+#-----------------------------------------------------------------------------
+def ActType_SC(Inhib,ZScore=None,cutoff_Inhib={'A':80,'P':50},cutoff_Zscore={'A':3.5,'P':2.5}):
+#-----------------------------------------------------------------------------
+    actType = 'Invalid'
+
+    if isinstance(Inhib,str):
+        Inhib = float(Inhib)
+
+    if ZScore: # With ZSCore as per CO-ADD
+        if isinstance(ZScore,str):
+            ZScore = float(ZScore)
+        actType = 'Inactive'
+        if Inhib >= cutoff_Inhib['P'] and ZScore >= cutoff_Zscore['P']:
+            actType = 'Partial'
+        if Inhib >= cutoff_Inhib['A'] and ZScore >= cutoff_Zscore['A']:
+            actType = 'Active'
+        if Inhib >= cutoff_Inhib['A'] and ZScore < cutoff_Zscore['P']:
+            actType = 'Unknown'
+
+    else: # Without ZSCore as per DoseResponse
+        actType = 'Inactive'
+        if Inhib >= cutoff_Inhib['P']:
+            actType = 'Partial'
+        if Inhib >= cutoff_Inhib['A']:
+            actType = 'Active'
+        return(actType)
+#-----------------------------------------------------------------------------
+def ActScore_SC(Inhib,ZScore=None,cutoff_Inhib={'A':80,'P':50},cutoff_Zscore={'A':3.5,'P':2.5}):
+#-----------------------------------------------------------------------------
+    _t = ActType_SC(Inhib,ZScore=ZScore,cutoff_Inhib=cutoff_Inhib,cutoff_Zscore=cutoff_Zscore)
+    return(ActScoreSC_Cutoff[_t]['Score'])
+
+#-----------------------------------------------------------------------------
+def ActType_DR(DR,DR_Unit,DMax=0, cutoffDR=ActScoreDR_Cutoff,cutoff_inhib=50):
+#-----------------------------------------------------------------------------
+
+    #print(f" {DR} {DR_Unit}")
+    actType = 'Invalid'
+    CmpdSep = '|'
+
+    # Set initial values
+    if DMax is None:
+        DMax = 0
+    prefix,val,_ = split_DR(DR)
+    if CmpdSep in DR_Unit:
+        _lst = list(DR_Unit.split(CmpdSep))
+        _lst = list(map(str.strip, _lst))
+        unit = _lst[0]
+    else:
+        unit = DR_Unit
+
+    if (prefix == '=') or (prefix == '<'):
+        actType = 'LowActive'
+        if unit in cutoffDR['Active']['CutOff']:
+            for a in ['Active','Hit','SuperHit']:
+                if val <= cutoffDR[a]['CutOff'][unit]:
+                    actType = a
+    else:
+        if DMax >= cutoff_inhib:
+            actType = 'Partial'
+        else:
+            actType = 'Inactive'
+    return(actType)
+
+#-----------------------------------------------------------------------------
+def ActScore_DR(DR,DR_Unit,DMax=0, cutoffDR=ActScoreDR_Cutoff,cutoff_inhib=50):
+#-----------------------------------------------------------------------------
+    _t = ActType_DR(DR,DR_Unit,DMax=DMax,cutoffDR=cutoffDR,cutoff_inhib=cutoff_inhib)
+    return(cutoffDR[_t]['Score'])
+
+#-----------------------------------------------------------------------------
+# pScore -log DR
+#-----------------------------------------------------------------------------
+def pScore(DR,Unit,DMax,MW=0,gtShift=3,drMax2=40):
+    prefix = '-'
+    log_uM = 6
+    prefix,val,_ = split_DR(DR)
+
+    try:
+        val = conv_Conc(val,Unit,'uM',MW)[0]
+        if (prefix == '=') or (prefix == '<'):
+            pScore = log_uM - math.log10(val)
+        elif (prefix == '>'):
+            if DMax is not None:
+                if DMax >= drMax2:
+                    gtShift = 2
+            pScore = log_uM - math.log10(gtShift*val)
+        else:
+            pScore = 0
+    except:
+        pScore = -1
+    return(round(pScore,2))
+
+# ==================================================================================
+# Converting concentration molar <-> g/mL
+# ==================================================================================
+def conv_Conc(conc,fromunit,tounit,mw=0):
+    unitMolar = {'M':0, 'mM':-3, 'uM':-6, 'µM': -6, 'nM':-9,'pM':-12}
+    unitGramLiter = {'mg/mL':0, 'ug/mL':-3, 'µg/mL':-3, 'ng/mL':-6, 'pg/mL':-9}
+
+    mw = float(mw)
+
+    if tounit in unitMolar:
+        if fromunit in unitMolar:
+            nconc = conc * 10**(unitMolar[fromunit]-unitMolar[tounit])
+        elif fromunit in unitGramLiter:
+            if mw > 0:
+                nconc = 10**(unitGramLiter[fromunit]-unitMolar[tounit]) * conc / mw
+            else:
+                logger.error(f'Requires a molecular weight {mw:.2f}')
+        else:
+            logger.error(f'Wrong unit to convert from {fromunit}')
+
+    elif tounit in unitGramLiter:
+        if fromunit in unitGramLiter:
+            nconc = conc * 10**(unitGramLiter[fromunit]-unitGramLiter[tounit])
+        elif fromunit in unitMolar:
+            if mw > 0:
+                nconc = 10**(unitMolar[fromunit]-unitGramLiter[tounit]) * conc * mw
+            else:
+                logger.error(f'Requires a molecular weight {mw:.2f}')
+        else:
+            logger.error(f'Wrong unit to convert from {fromunit}')
+    else:
+        logger.error(f'Wrong unit to convert to {tounit}')
+    return(nconc,tounit)
+
 
 # ==================================================================================
 # Aggregation function
@@ -22,12 +175,12 @@ def agg_DR(x):
 
 # --------------------------------------------------------------------
 def agg_Inhib(x):
-    return(Value_Range(x,aggType='Mean',floatPrec=1))
+    return(SC_Range(x,aggType='Mean',floatPrec=1))
 
 #-----------------------------------------------------------------------------
 # Summary Functions for Inhibition %
 #-----------------------------------------------------------------------------
-def Value_Range(lstValue,aggType='Mean',floatPrec=2,maxLst=10):
+def SC_Range(lstValue,aggType='Mean',floatPrec=2,maxLst=10):
     npArr = np.array(lstValue)
     npArr = npArr[npArr != np.array(None)]
     df = {}
@@ -161,7 +314,7 @@ def Sort2DR_lst(lstSort,zLength=4):
 #-----------------------------------------------------------------------------
 # Doseresponse Formating Functions
 #-----------------------------------------------------------------------------
-def split_XC50(strDR):
+def split_DR(strDR):
     fval = 0
     sval = 0
     prefix = '-'
@@ -199,19 +352,6 @@ def split_XC50(strDR):
             prefix = '='
 
     return(prefix,fval,sval)
-
-# --------------------------------------------------------------------
-def split_DR(strDR):
-    if strDR[0] == '>':
-        p = '>'
-        v = djdata.to_num(strDR[1:])
-    elif strDR[:2] == '<=':
-        p = '<='
-        v = djdata.to_num(strDR[2:])
-    else:
-        p = '='
-        v = djdata.to_num(strDR)
-    return(p,v)
 
 # --------------------------------------------------------------------
 def format_DR(p,v):
