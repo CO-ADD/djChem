@@ -24,8 +24,8 @@ logLevel = logging.INFO
 logger = logging.getLogger(__name__)
 logging.basicConfig(
     format="[%(name)-20s] %(message)s ",
-#    handlers=[logging.FileHandler(logFileName,mode='w'),logging.StreamHandler()],
-    handlers=[logging.StreamHandler()],
+    handlers=[logging.FileHandler(logFileName,mode='w'),logging.StreamHandler()],
+#    handlers=[logging.StreamHandler()],
     level=logLevel)
 
 #-----------------------------------------------------------------------------
@@ -76,12 +76,12 @@ def main(prgArgs,djDir):
 
         entrySQL = """
                 Select sc.structure_id, sc.sum_assay_id,
-                    sc.n_assays, sc.n_actives, sc.act_types,  sc.act_score_ave,
+                    sc.n_assays, sc.n_actives, sc.act_types,  sc.act_score,
                     sc.inhibition_ave, sc.inhibition_std, sc.inhibition_min, sc.inhibition_max,
                     sc.mscore_ave
                 From  dsummary.sum_structure_sc sc
                 """
-        cpyFields = ['n_assays', 'n_actives','act_types', 'act_score_ave',
+        cpyFields = ['n_assays', 'n_actives','act_types', 'act_score',
                      'inhibition_ave', 'inhibition_std', 'inhibition_min', 'inhibition_max','mscore_ave',
                      'pub_date'
                 ]
@@ -133,7 +133,7 @@ def main(prgArgs,djDir):
                             validStatus = False
                             OutNumbers['Failed'] += 1
                             row.update(validDict)
-                            logger.warning(f"{djObj.structure_id} {validDict} ")
+                            #logger.warning(f"{djObj.structure_id} {validDict} ")
                             OutDict.append(row)
 
                         if validStatus:
@@ -146,12 +146,11 @@ def main(prgArgs,djDir):
                     else:
                         OutNumbers['Failed'] += 1
                         if djAssay is None:
-                            row.update({"Warning":f" Assay {row['sum_assay_id']} not Found in {SourceName}"})
-                            #logger.warning(f" {sid} Assay {row['sum_assay_id']} not Found in {SourceName}")
+                            row["Warning"] = f" Assay {row['sum_assay_id']} not Found in {SourceName}"
+                            logger.warning(f" {sid} Assay {row['sum_assay_id']} not Found in {SourceName}")
                         if djStructure is None:
-                            row.update({"Warning":f" Structure  {sid} not Found"})
-                            logger.warning(f" {sid} Structure not Found")
-                        
+                            row["Error"] = f" Structure  {sid} not Found"
+                            logger.error(f" {sid} Structure not Found")
                         OutDict.append(row)
 
 

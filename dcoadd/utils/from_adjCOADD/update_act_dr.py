@@ -27,7 +27,7 @@ logging.basicConfig(
 #    handlers=[logging.FileHandler(logFileName,mode='w'),logging.StreamHandler()],
     handlers=[logging.StreamHandler()],
     level=logLevel)
-
+logger.info("-------------------------------------------")
 #-----------------------------------------------------------------------------
 
 def openCoaddDB(User='coadd', Passwd='MtMaroon23',DataBase="coadd",verbose=1):
@@ -73,14 +73,14 @@ def main(prgArgs,djDir):
 
         entrySQL = """
                 Select dr.structure_id, dr.sum_assay_id,
-                    dr.n_assays, dr.n_actives, dr.act_types,  dr.act_score_ave, dr.pscore_ave,
+                    dr.n_assays, dr.n_actives, dr.act_types,  dr.act_score, dr.pscore,
                     dr.inhibit_max_ave,
                     dr.drval_type result_type, dr.drval_unit result_unit,
                     dr.drval_max result_max, dr.drval_min result_min, dr.drval_median result_median, dr.drval_unit result_unit,
                     dr.drval_std_geomean result_std_geomean, dr.drval_std_unit result_std_unit
                 From  dsummary.sum_structure_dr dr
                 """
-        cpyFields = ['n_assays', 'n_actives','act_types', 'act_score_ave','pscore_ave','inhibit_max_ave',
+        cpyFields = ['n_assays', 'n_actives','act_types', 'act_score','pscore','inhibit_max_ave',
                      'result_max', 'result_min', 'result_median',
                      'result_std_geomean',
                      'pub_date'
@@ -146,14 +146,12 @@ def main(prgArgs,djDir):
                     else:
                         OutNumbers['Failed'] += 1
                         if djAssay is None:
-                            row.update({"Warning":f" Assay {row['sum_assay_id']} not Found in {SourceName}"})
-                            #logger.warning(f" {sid} Assay {row['sum_assay_id']} not Found in {SourceName}")
+                            row["Warning"] = f" Assay {row['sum_assay_id']} not Found in {SourceName}"
+                            logger.warning(f" {sid} Assay {row['sum_assay_id']} not Found in {SourceName}")
                         if djStructure is None:
-                            row.update({"Warning":f" Structure  {sid} not Found"})
-                            logger.warning(f" {sid} Structure not Found")
-                        
+                            row["Error"] = f" Structure  {sid} not Found"
+                            logger.error(f" {sid} Structure not Found")
                         OutDict.append(row)
-
 
                 OutNumbers['Processed'] += len(df)
 

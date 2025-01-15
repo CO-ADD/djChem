@@ -7,7 +7,7 @@ from django_rdkit.config import config
 from django.conf import settings
 
 from adjCHEM.constants import COMPOUND_SEP
-import apputil.utils.data as djdata
+from apputil.utils.data import join_lst, limit_lst, to_num, strList_to_List, split_StrList
 
 import logging
 logger = logging.getLogger(__name__)
@@ -45,11 +45,11 @@ def ActType_SC(Inhib,ZScore=None,cutoff_Inhib={'A':80,'P':50},cutoff_Zscore={'A'
         if isinstance(ZScore,str):
             ZScore = float(ZScore)
         actType = 'Inactive'
-        if Inhib >= cutoff_Inhib['P'] and ZScore >= cutoff_Zscore['P']:
+        if Inhib >= cutoff_Inhib['P'] and abs(ZScore) >= cutoff_Zscore['P']:
             actType = 'Partial'
-        if Inhib >= cutoff_Inhib['A'] and ZScore >= cutoff_Zscore['A']:
+        if Inhib >= cutoff_Inhib['A'] and abs(ZScore) >= cutoff_Zscore['A']:
             actType = 'Active'
-        if Inhib >= cutoff_Inhib['A'] and ZScore < cutoff_Zscore['P']:
+        if Inhib >= cutoff_Inhib['A'] and abs(ZScore) < cutoff_Zscore['P']:
             actType = 'Unknown'
 
     else: # Without ZSCore as per DoseResponse
@@ -107,59 +107,87 @@ def ActScore_DR(DR,DR_Unit,DMax=0, cutoffDR=ActScoreDR_Cutoff,cutoff_inhib=50):
 # pScore -log DR
 #-----------------------------------------------------------------------------
 def pScore(DR,Unit,DMax,MW=0,gtShift=3,drMax2=40):
+    """
+        pScore as 
+             0    Unknown Prefix (<0)
+            -1    Not Processed or no DR
+            -2    No MW or Unit not in Molar (no conversion needed)
+            -3    Unknown Unit
+            -9    Unknown Concentration (<0)
+            f.dd -log(DR in [M]) with 2 decimal points
+    """    
+    pScore = -1
     prefix = '-'
     log_uM = 6
-    prefix,val,_ = split_DR(DR)
 
-    try:
-        val = conv_Conc(val,Unit,'uM',MW)[0]
-        if (prefix == '=') or (prefix == '<'):
-            pScore = log_uM - math.log10(val)
-        elif (prefix == '>'):
-            if DMax is not None:
-                if DMax >= drMax2:
-                    gtShift = 2
-            pScore = log_uM - math.log10(gtShift*val)
+    if DR and Unit :
+        _dr_unit = split_StrList(Unit,sep=COMPOUND_SEP)[0]
+        if _dr_unit in ['uM','mM','pM','M'] or MW > 0:
+            _dr = split_StrList(DR,sep=COMPOUND_SEP)[0]
+
+            prefix, val, _ = split_DR(_dr)
+            val,_ = conv_Conc(val,_dr_unit,'uM',MW)
+            if val:
+                if val > 0:
+                    if (prefix == '=') or (prefix == '<'):
+                        pScore = round(log_uM - math.log10(val),2)
+                    elif (prefix == '>'):
+                        if DMax is not None:
+                            if DMax >= drMax2:
+                                gtShift = 2
+                        pScore = round(log_uM - math.log10(gtShift*val),2)
+                    else:
+                        pScore = 0
+                else:    
+                    pScore = -9
+            else:
+                pScore = -3 
         else:
-            pScore = 0
-    except:
-        pScore = -1
-    return(round(pScore,2))
+            pScore = -2
+    return(pScore)
 
 # ==================================================================================
 # Converting concentration molar <-> g/mL
 # ==================================================================================
-def conv_Conc(conc,fromunit,tounit,mw=0):
+def conv_Conc(fromConc,fromUnit,toUnit,mw=0):
     unitMolar = {'M':0, 'mM':-3, 'uM':-6, 'µM': -6, 'nM':-9,'pM':-12}
     unitGramLiter = {'mg/mL':0, 'ug/mL':-3, 'µg/mL':-3, 'ng/mL':-6, 'pg/mL':-9}
 
     mw = float(mw)
 
-    if tounit in unitMolar:
-        if fromunit in unitMolar:
-            nconc = conc * 10**(unitMolar[fromunit]-unitMolar[tounit])
-        elif fromunit in unitGramLiter:
-            if mw > 0:
-                nconc = 10**(unitGramLiter[fromunit]-unitMolar[tounit]) * conc / mw
-            else:
-                logger.error(f'Requires a molecular weight {mw:.2f}')
-        else:
-            logger.error(f'Wrong unit to convert from {fromunit}')
+    if fromUnit == toUnit:
+        toConc = fromConc
 
-    elif tounit in unitGramLiter:
-        if fromunit in unitGramLiter:
-            nconc = conc * 10**(unitGramLiter[fromunit]-unitGramLiter[tounit])
-        elif fromunit in unitMolar:
+    elif toUnit in unitMolar:
+        if fromUnit in unitMolar:
+            toConc = fromConc * 10**(unitMolar[fromUnit]-unitMolar[toUnit])
+        elif fromUnit in unitGramLiter:
             if mw > 0:
-                nconc = 10**(unitMolar[fromunit]-unitGramLiter[tounit]) * conc * mw
+                toConc = 10**(unitGramLiter[fromUnit]-unitMolar[toUnit]) * fromConc / mw
             else:
-                logger.error(f'Requires a molecular weight {mw:.2f}')
+                logger.error(f' [conv_Conc] Requires MW [{mw:.2f}]')
+                toConc = None
         else:
-            logger.error(f'Wrong unit to convert from {fromunit}')
+            logger.error(f' [conv_Conc] Wrong from Unit [{fromUnit}] ')
+            toConc = None
+
+    elif toUnit in unitGramLiter:
+        if fromUnit in unitGramLiter:
+            toConc = fromConc * 10**(unitGramLiter[fromUnit]-unitGramLiter[toUnit])
+        elif fromUnit in unitMolar:
+            if mw > 0:
+                toConc = 10**(unitMolar[fromUnit]-unitGramLiter[toUnit]) * fromConc * mw
+            else:
+                logger.error(f' [conv_Conc] Requires MW [{mw:.2f}]')
+                toConc = None
+        else:
+            logger.error(f' [conv_Conc] Wrong from Unit [{fromUnit}]')
+            toConc = None
     else:
-        logger.error(f'Wrong unit to convert to {tounit}')
-    return(nconc,tounit)
+        logger.error(f' [conv_Conc] Wrong to Unit [{toUnit}]')
+        toConc = None
 
+    return(toConc,toUnit)
 
 # ==================================================================================
 # Aggregation function
@@ -167,7 +195,7 @@ def conv_Conc(conc,fromunit,tounit,mw=0):
 
 # --------------------------------------------------------------------
 def agg_Lst(x,sep=";"):
-    return(djdata.join_lst(x,sep=sep))
+    return(join_lst(x,sep=sep))
 
 # --------------------------------------------------------------------
 def agg_DR(x):
@@ -175,12 +203,12 @@ def agg_DR(x):
 
 # --------------------------------------------------------------------
 def agg_Inhib(x):
-    return(SC_Range(x,aggType='Mean',floatPrec=1))
+    return(Value_Range(x,aggType='Mean',floatPrec=1))
 
 #-----------------------------------------------------------------------------
 # Summary Functions for Inhibition %
 #-----------------------------------------------------------------------------
-def SC_Range(lstValue,aggType='Mean',floatPrec=2,maxLst=10):
+def Value_Range(lstValue,aggType='Mean',floatPrec=2,maxLst=10):
     npArr = np.array(lstValue)
     npArr = npArr[npArr != np.array(None)]
     df = {}
@@ -190,7 +218,7 @@ def SC_Range(lstValue,aggType='Mean',floatPrec=2,maxLst=10):
         df['Median'] = f"{np.median(npArr):.{floatPrec}f}"
         df['Mean']   = f"{np.mean(npArr):.{floatPrec}f}"
         df['StDev']  = f"{np.std(npArr):.{floatPrec}f}"
-        df['ValueList'] = djdata.limit_lst([round(x,floatPrec) for x in npArr],maxLst)
+        df['ValueList'] = limit_lst([round(x,floatPrec) for x in npArr],maxLst)
         df['StrList'] = "; ".join(f"{x:.{floatPrec}f}" for x in df['ValueList'])
         df['nValues'] = len(npArr)
         if len(npArr) == 1:
@@ -225,13 +253,15 @@ def DR_Range(lstDR,maxLst=10):
     sortLst = DR2Sort_lst(lstDR)
     if len(sortLst) > 0:
         sortLst.sort()
+
         sortDR = Sort2DR_lst(sortLst)
+
         df['Min'] = sortDR[0]
         df['Max'] = sortDR[-1]
         df['Median'] =sortDR[(int((len(sortLst)-1)/2))]
         df['nDR'] = len(sortDR)
         df['nValues'] = len(sortDR)
-        df['ValueList'] = djdata.limit_lst(sortDR,maxLst)
+        df['ValueList'] = limit_lst(sortDR,maxLst)
         df['DRList'] = "; ".join(df['ValueList'])
 
         if len(sortLst) == 1:
@@ -249,6 +279,19 @@ def DR_Range(lstDR,maxLst=10):
         df['ValueList'] = []
         df['Range'] = '-'
     return(df)
+
+#-----------------------------------------------------------------------------
+# Doseresponse Geometric Mean
+#-----------------------------------------------------------------------------
+def DR_GeoMean(lstDR):
+    dr_val = []
+    for dr in lstDR:
+        dr_val.append(split_DR(dr)[1])
+    try:
+        _gm = geometric_mean(dr_val)
+    except:
+        _gm = -1
+    return(_gm)
 
 #-----------------------------------------------------------------------------
 # Doseresponse Sorting Functions 
@@ -284,7 +327,7 @@ def DR2Sort_lst(lstDR,zLength=4):
     for i in lstDR:
         try:
             if COMPOUND_SEP in i:
-                v = djdata.split_StrList(i,sep=COMPOUND_SEP) #split_lst
+                v = split_StrList(i,sep=COMPOUND_SEP) #split_lst
                 v[0] = DR2Sort(str(v[0]),zLength=zLength)
                 lstSort.append(COMPOUND_SEP.join(v))
                 # print("okDR2Sort_lst")
@@ -301,7 +344,7 @@ def Sort2DR_lst(lstSort,zLength=4):
     for i in lstSort:
         try:
             if COMPOUND_SEP in i:
-                v = djdata.split_StrList(i,sep=COMPOUND_SEP) #split_lst
+                v = split_StrList(i,sep=COMPOUND_SEP) #split_lst
                 v[0] = Sort2DR(v[0],zLength=zLength)
                 lstDR.append(COMPOUND_SEP.join(v))
                 # print("okSort2DR_lst")
@@ -329,7 +372,7 @@ def split_DR(strDR):
         elif '<' in strDR:
             sval = strDR[1:]
             prefix = '<'
-        elif 'nf' in strDR:
+        elif 'nf' in strDR or '-' == strDR :
             sval = 0
             prefix = 'x'
         else:
@@ -339,38 +382,41 @@ def split_DR(strDR):
         # Separate mixture -> 1st val into fval
         if isinstance(sval,str):
             if COMPOUND_SEP in sval:
-                lval = djdata.split_StrList(sval,sep=COMPOUND_SEP)
-                fval = djdata.to_num(lval[0])
+                lval = split_StrList(sval,sep=COMPOUND_SEP)
+                fval = to_num(lval[0])
             else:
-                fval = djdata.to_num(sval)
+                fval = to_num(sval)
         else:
             fval = sval
 
     if isinstance(strDR,float) or isinstance(strDR,int) :
             sval = strDR
-            fval = djdata.to_num(strDR)
+            fval = to_num(strDR)
             prefix = '='
 
     return(prefix,fval,sval)
 
+
 # --------------------------------------------------------------------
 def format_DR(p,v):
-    if isinstance(v,str):
-        strVal = v
-    else:
-        if int(v) == v:
-            strVal = f"{v}"
-        elif v > 1000:
-                strVal = f"{v:.0f}"
-        elif v > 100:
-                strVal = f"{v:.1f}"
-        elif v > 10:
-                strVal = f"{v:.2f}"
+    strVal = ''
+    if v:
+        if isinstance(v,str):
+            strVal = v
         else:
-            strVal = f"{v:.3f}"
+            if int(v) == v:
+                strVal = f"{v}"
+            elif v > 1000:
+                    strVal = f"{v:.0f}"
+            elif v > 100:
+                    strVal = f"{v:.1f}"
+            elif v > 10:
+                    strVal = f"{v:.2f}"
+            else:
+                strVal = f"{v:.3f}"
 
-    if p == 'X':
-        strVal = 'nf'
-    elif p == '<=' or p == '>':
-        strVal = p + strVal
+        if p == 'X':
+            strVal = 'nf'
+        elif p == '<=' or p == '>':
+            strVal = p + strVal
     return(strVal)

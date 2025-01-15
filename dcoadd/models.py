@@ -222,6 +222,9 @@ class Chem_Structure(AuditModel):
     atom_classes = ArrayField(models.CharField(max_length=15, null=True, blank=True), size=4, verbose_name = "Atom Classes", 
                                       null=True, blank=True)
 
+    compound_type = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Type", on_delete=models.DO_NOTHING,
+        db_column="compound_type", related_name="%(class)s_compound_type")
+
     smol = models.MolField(verbose_name = "MOL")	
     nfrag = models.PositiveSmallIntegerField(default=1, blank=True, verbose_name ="nFrag")
     charge = models.DecimalField(max_digits=10, decimal_places=2,  blank=True, verbose_name ="Charge")
@@ -259,6 +262,7 @@ class Chem_Structure(AuditModel):
             models.Index(name="cstruct_natoms_idx", fields=['natoms']),
             models.Index(name="cstruct_nfrag_idx", fields=['nfrag']),
             models.Index(name="cstruct_charge_idx", fields=['charge']),
+            models.Index(name="cstruct_cmptyp_idx", fields=['compound_type']),
             GistIndex(name="cstruct_smol_idx",fields=['smol']),
             GistIndex(name="cstruct_ffp2_idx",fields=['ffp2']),
             GistIndex(name="cstruct_mfp2_idx",fields=['mfp2']),
@@ -539,8 +543,8 @@ class Activity_Compound_DoseResponse(AuditModel):
     act_types = models.CharField(max_length=250, blank=True, verbose_name = "Active Types")
     n_assays = models.SmallIntegerField(default=-1, blank=True, verbose_name = "#Assay")
     n_actives = models.SmallIntegerField(default=-1, blank=True, verbose_name = "#Actives")
-    act_score_ave = models.DecimalField(default=-1, max_digits=10, decimal_places=2, verbose_name = "Act Score Ave")
-    pscore_ave = models.DecimalField(default=-1, max_digits=10, decimal_places=2, verbose_name = "pScore Ave")
+    act_score = models.DecimalField(default=-1, max_digits=10, decimal_places=2, verbose_name = "Act Score Ave")
+    pscore = models.DecimalField(default=-1, max_digits=10, decimal_places=2, verbose_name = "pScore Ave")
 
     inhibit_max_ave = models.DecimalField(default=-1, max_digits=9, decimal_places=3, verbose_name = "Inhibition Max Ave")
     result_type = models.ForeignKey(Dictionary, blank=False, verbose_name = "Result Type", on_delete=models.DO_NOTHING,
@@ -572,8 +576,8 @@ class Activity_Compound_DoseResponse(AuditModel):
             models.Index(name="actcmpdr_cmp_idx", fields=['compound_id']),
             models.Index(name="actcmpdr_ass_idx", fields=['assay_id']),
             models.Index(name="actcmpdr_src_idx", fields=['source_id']),
-            models.Index(name="actcmpdr_act_idx", fields=['act_score_ave']),
-            models.Index(name="actcmpdr_pscr_idx", fields=['pscore_ave']),
+            models.Index(name="actcmpdr_act_idx", fields=['act_score']),
+            models.Index(name="actcmpdr_pscr_idx", fields=['pscore']),
             models.Index(name="actcmpdr_dmax_idx", fields=['inhibit_max_ave']),
             models.Index(name="actcmpdr_rtyp_idx", fields=['result_type']),
             models.Index(name="actcmpdr_rval_idx", fields=['result_value']),
