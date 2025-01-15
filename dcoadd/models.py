@@ -514,6 +514,85 @@ class Compound(AuditModel):
         retValue = cls.objects.filter(compound_id=CompoundID).exists()
         return(retValue)
 
+#-------------------------------------------------------------------------------------------------
+class Activity_Compound_Inhibition(AuditModel):
+    """
+    List of Summary Activity for each Structure
+    """
+#-------------------------------------------------------------------------------------------------
+    Choice_Dictionary = {
+        'result_type':'Result_Type',
+        'pub_status':'Pub_Status',
+    }
+
+
+    ID_SEQUENCE = None
+
+    #udi_key = models.CharField(max_length=24, unique=True, blank=False, verbose_name = "UDI")
+
+    compound_id = models.ForeignKey(Compound, blank=False, verbose_name = "Compound ID", on_delete=models.DO_NOTHING,
+        db_column="compound_id", related_name="%(class)s_compound_id")
+    assay_id = models.ForeignKey(Assay, blank=False, verbose_name = "Assay", on_delete=models.DO_NOTHING,
+        db_column="assay_id", related_name="%(class)s_assay_id")
+    source_id = models.ForeignKey(Source, blank=False, verbose_name = "Source", on_delete=models.DO_NOTHING,
+        db_column="source_id", related_name="%(class)s_source_id")
+
+    # Activity Summary
+    act_types = models.CharField(max_length=250, blank=True, verbose_name = "Active Tupes")
+    n_assays = models.SmallIntegerField(default=-1, blank=True, verbose_name = "#Assay")
+    n_actives = models.SmallIntegerField(default=-1, blank=True, verbose_name = "#Actives")
+    act_score = models.DecimalField(default=-1, max_digits=10, decimal_places=2, verbose_name = "Act Score")
+
+    result_type = models.ForeignKey(Dictionary, blank=False, verbose_name = "Result Type", on_delete=models.DO_NOTHING,
+        db_column="result_type", related_name="%(class)s_result_type")
+
+    inhibition_ave = models.DecimalField(default=-1, max_digits=9, decimal_places=3, verbose_name = "Inhibition Ave")
+    inhibition_std = models.DecimalField(default=-1, max_digits=9, decimal_places=3, verbose_name = "Inhibition Std")
+    inhibition_min = models.DecimalField(default=-1, max_digits=9, decimal_places=3, verbose_name = "Inhibition Min")
+    inhibition_max = models.DecimalField(default=-1, max_digits=9, decimal_places=3, verbose_name = "Inhibition Max")
+    mscore_ave = models.DecimalField(max_digits=9, decimal_places=3, verbose_name = "MScore Max")
+
+    pub_status = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Pub Status", on_delete=models.DO_NOTHING,
+        db_column="pub_status", related_name="%(class)s_pub_statust")
+    pub_date = models.DateField(null=True, blank=True,  editable=False, verbose_name="Published")
+
+
+    #------------------------------------------------
+    class Meta:
+        app_label = 'dcoadd'
+        db_table = 'act_cmpd_sc'
+        ordering=['compound_id']
+        constraints = [
+            models.UniqueConstraint(name='actstrsc_pk_cst', fields=['compound_id', 'assay_id','source_id'], )
+        ]        
+        indexes = [
+            models.Index(name="actcmpsc_cmp_idx", fields=['compound_id']),
+            models.Index(name="actcmpsc_ass_idx", fields=['assay_id']),
+            models.Index(name="actcmpsc_src_idx", fields=['source_id']),
+            models.Index(name="actcmpsc_act_idx", fields=['act_score']),
+            models.Index(name="actcmpsc_iave_idx", fields=['inhibition_ave']),
+            models.Index(name="actcmpsc_mave_idx", fields=['mscore_ave']),
+            models.Index(name="actcmpsc_rtyp_idx", fields=['result_type']),
+            models.Index(name="actcmpsc_pst_idx", fields=['pub_status']),
+        ]
+
+    #------------------------------------------------
+    @classmethod
+    def get(cls,CompoundID, AssayID, SourceID,verbose=0):
+        try:
+            retInstance = cls.objects.get(compound_id = CompoundID, assay_id = AssayID, source_id= SourceID)
+        except:
+            if verbose:
+                logger.warning(f"[ActCompoundSC Not Found] {CompoundID} {AssayID} {SourceID}")
+            retInstance = None
+        return(retInstance)
+
+    #------------------------------------------------
+    def set_actscores(self,ZScore=False,verbose=0):
+        if ZScore:
+            self.act_score = ActScore_SC(self.inhibition_ave,self.mscore_ave)
+        else:
+            self.act_score = ActScore_SC(self.inhibition_ave)
 
 #-------------------------------------------------------------------------------------------------
 class Activity_Compound_DoseResponse(AuditModel):
@@ -584,7 +663,25 @@ class Activity_Compound_DoseResponse(AuditModel):
             models.Index(name="actcmpdr_rpre_idx", fields=['result_prefix']),
             models.Index(name="actcmpdr_pst_idx", fields=['pub_status']),
         ]
+    #------------------------------------------------
+    @classmethod
+    def get(cls,CompoundID, AssayID, SourceID,verbose=0):
+        try:
+            retInstance = cls.objects.get(compound_id = CompoundID, assay_id = AssayID, source_id= SourceID)
+        except:
+            if verbose:
+                logger.warning(f"[ActCompoundSC Not Found] {CompoundID} {AssayID} {SourceID}")
+            retInstance = None
+        return(retInstance)
 
+    #------------------------------------------------
+    def set_actscores(self,ZScore=False,verbose=0):
+        if ZScore:
+            self.act_score = ActScore_SC(self.inhibition_ave,self.mscore_ave)
+        else:
+            self.act_score = ActScore_SC(self.inhibition_ave)
+
+#-------------------------------------------------------------------------------------------------
 class Activity_Structure_DoseResponse(AuditModel):
     """
     List of Single Conc (Inhibition) Activities 

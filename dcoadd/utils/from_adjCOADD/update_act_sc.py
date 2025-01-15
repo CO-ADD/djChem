@@ -42,6 +42,8 @@ def main(prgArgs,djDir):
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "adjCHEM.settings")
     django.setup()
 
+    logging.getLogger().addHandler(logging.FileHandler(logFileName,mode='w'))
+
     logger.info(f"Python         : {sys.version.split('|')[0]}")
     logger.info(f"Conda Env      : {os.environ['CONDA_DEFAULT_ENV']}")
     #logger.info(f"LogFile        : {logFileName}")
@@ -59,7 +61,7 @@ def main(prgArgs,djDir):
     # ---------------------------------------------------------------------
     if prgArgs.table == 'ActStructureSC':
 
-        OutFile = f"Upload_{prgArgs.table}_Issues.xlsx"
+        OutFile = f"Upload_{prgArgs.table}_Issues_{logTime:%Y%m%d_%H%M%S}.xlsx"
 
         logger.info(f"[Upd_djCOADD] Table: {prgArgs.table}") 
         logger.info(f"[Upd_djCOADD] User:  {prgArgs.appuser}") 
@@ -170,7 +172,7 @@ def main(prgArgs,djDir):
 if __name__ == "__main__":
 
     print("-------------------------------------------------------------------")
-    print("Running : ",sys.argv)
+    logger.info("Running : ",sys.argv)
     print("-------------------------------------------------------------------")
 
 
@@ -210,6 +212,6 @@ if __name__ == "__main__":
 
     if djDir:
         main(prgArgs,djDir)
-        print("-------------------------------------------------------------------")
+        logger.info("-------------------------------------------------------------------")
 
 #==============================================================================
