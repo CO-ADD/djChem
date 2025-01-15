@@ -563,7 +563,7 @@ class Activity_Compound_Inhibition(AuditModel):
         db_table = 'act_cmpd_sc'
         ordering=['compound_id']
         constraints = [
-            models.UniqueConstraint(name='actstrsc_pk_cst', fields=['compound_id', 'assay_id','source_id'], )
+            models.UniqueConstraint(name='actcmpsc_pk_cst', fields=['compound_id', 'assay_id','source_id'], )
         ]        
         indexes = [
             models.Index(name="actcmpsc_cmp_idx", fields=['compound_id']),
