@@ -147,7 +147,7 @@ def main(prgArgs,djDir):
                         OutNumbers['Failed'] += 1
                         if djAssay is None:
                             row["Warning"] = f" Assay {row['sum_assay_id']} not Found in {SourceName}"
-                            logger.warning(f" {sid} Assay {row['sum_assay_id']} not Found in {SourceName}")
+                            #logger.warning(f" {sid} Assay {row['sum_assay_id']} not Found in {SourceName}")
                         if djStructure is None:
                             row["Error"] = f" Structure  {sid} not Found"
                             logger.error(f" {sid} Structure not Found")
