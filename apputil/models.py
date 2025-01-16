@@ -351,7 +351,7 @@ class Dictionary(AuditModel):
         ]
     #------------------------------------------------
     def __str__(self) -> str:
-        return f"{self.dict_value}  {self.dict_class}"
+        return f"{self.dict_value}"
 
 
     def __repr__(self) -> str:
