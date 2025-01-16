@@ -640,8 +640,8 @@ class Activity_Compound_DoseResponse(AuditModel):
     result_unit = models.ForeignKey(Dictionary, blank=False, verbose_name = "Result Unit", on_delete=models.DO_NOTHING,
         db_column="result_unit", related_name="%(class)s_result_unit")
 
-    result_std_geomean = models.CharField(max_length=20, blank=False, verbose_name = "Result Std GeoMean")
-    result_std_unit = models.ForeignKey(Dictionary, blank=False, verbose_name = "Result Std Unit", on_delete=models.DO_NOTHING,
+    result_std_geomean = models.CharField(max_length=20, blank=True, verbose_name = "Result Std GeoMean")
+    result_std_unit = models.ForeignKey(Dictionary, blank=True, verbose_name = "Result Std Unit", on_delete=models.DO_NOTHING,
         db_column="result_std_unit", related_name="%(class)s_result_std_unit")
 
     pub_status = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Pub Status", on_delete=models.DO_NOTHING,
@@ -730,8 +730,8 @@ class Activity_Structure_DoseResponse(AuditModel):
     result_unit = models.ForeignKey(Dictionary, blank=False, verbose_name = "Result Unit", on_delete=models.DO_NOTHING,
         db_column="result_unit", related_name="%(class)s_result_unit")
 
-    result_std_geomean = models.CharField(max_length=20, blank=False, verbose_name = "Result Std GeoMean")
-    result_std_unit = models.ForeignKey(Dictionary, blank=False, verbose_name = "Result Std Unit", on_delete=models.DO_NOTHING,
+    result_std_geomean = models.CharField(max_length=20, blank=True, verbose_name = "Result Std GeoMean")
+    result_std_unit = models.ForeignKey(Dictionary, blank=True, verbose_name = "Result Std Unit", on_delete=models.DO_NOTHING,
         db_column="result_std_unit", related_name="%(class)s_result_std_unit")
 
     pub_status = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Pub Status", on_delete=models.DO_NOTHING,
