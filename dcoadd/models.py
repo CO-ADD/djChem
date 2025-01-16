@@ -682,7 +682,8 @@ class Activity_Compound_DoseResponse(AuditModel):
     #------------------------------------------------
     def set_actscores(self,verbose=0):
         self.act_score = ActScore_DR(self.result_median,str(self.result_unit),DMax=self.inhibit_max_ave)
-        self.pscore = pScore(self.result_std_geomean,str(self.result_std_unit),self.inhibit_max_ave,MW=0,gtShift=3,drMax2=40)
+        if self.result_std_unit and self.result_std_geomean:
+            self.pscore = pScore(self.result_std_geomean,str(self.result_std_unit),self.inhibit_max_ave,MW=0,gtShift=3,drMax2=40)
 
 #-------------------------------------------------------------------------------------------------
 class Activity_Structure_DoseResponse(AuditModel):
