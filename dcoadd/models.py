@@ -602,6 +602,7 @@ class Activity_Compound_DoseResponse(AuditModel):
 #-------------------------------------------------------------------------------------------------
     Choice_Dictionary = {
         'result_unit':'Unit_Concentration',
+        'result_std_unit':'Unit_Concentration',
         'result_type':'Result_Type',
         'pub_status':'Pub_Status',
     }
@@ -639,6 +640,10 @@ class Activity_Compound_DoseResponse(AuditModel):
     result_unit = models.ForeignKey(Dictionary, blank=False, verbose_name = "Result Unit", on_delete=models.DO_NOTHING,
         db_column="result_unit", related_name="%(class)s_result_unit")
 
+    result_std_geomean = models.CharField(max_length=20, blank=False, verbose_name = "Result Std GeoMean")
+    result_std_unit = models.ForeignKey(Dictionary, blank=False, verbose_name = "Result Std Unit", on_delete=models.DO_NOTHING,
+        db_column="result_std_unit", related_name="%(class)s_result_std_unit")
+
     pub_status = models.ForeignKey(Dictionary, null=True, blank=True, verbose_name = "Pub Status", on_delete=models.DO_NOTHING,
         db_column="pub_status", related_name="%(class)s_pub_statust")
     pub_date = models.DateField(null=True, blank=True,  editable=False, verbose_name="Published")
@@ -675,11 +680,9 @@ class Activity_Compound_DoseResponse(AuditModel):
         return(retInstance)
 
     #------------------------------------------------
-    def set_actscores(self,ZScore=False,verbose=0):
-        if ZScore:
-            self.act_score = ActScore_SC(self.inhibition_ave,self.mscore_ave)
-        else:
-            self.act_score = ActScore_SC(self.inhibition_ave)
+    def set_actscores(self,verbose=0):
+        self.act_score = ActScore_DR(self.result_median,self.result_unit.dict_value,DMax=self.inhibit_max_ave)
+        self.pscore = pScore(self.result_std_geomean,self.result_std_unit.dict_value,self.inhibit_max_ave,MW=0,gtShift=3,drMax2=40)
 
 #-------------------------------------------------------------------------------------------------
 class Activity_Structure_DoseResponse(AuditModel):

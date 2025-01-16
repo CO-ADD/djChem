@@ -17,7 +17,7 @@ import django
 # Logger ----------------------------------------------------------------
 import logging
 logTime= datetime.datetime.now()
-logName = "Upload_ActStrDR"
+logName = "Upload_ActCmpDR"
 logFileName = os.path.join("log",f"x{logName}_{logTime:%Y%m%d_%H%M%S}.log")
 logLevel = logging.INFO 
 
@@ -53,40 +53,41 @@ def main(prgArgs,djDir):
     logger.info(f"Django Project : {os.environ['DJANGO_SETTINGS_MODULE']}")
 
     from dcoadd.models import (Project, Source, Chem_Structure, Compound, Assay,
-                               Activity_Structure_DoseResponse, Activity_Structure_Inhibition)
+                               Activity_Compound_DoseResponse)
     from apputil.utils.set_data import set_Dictionaries,set_dictFields
     from apputil.utils.bio_data import split_DR
 
     # ---------------------------------------------------------------------
-    if prgArgs.table == 'ActStructureSC':
+    if prgArgs.table == 'ActCompoundDR':
 
-        OutFile = f"Upload_{prgArgs.table}_Issues_{logTime:%Y%m%d_%H%M%S}.xlsx"
+        OutFile = f"Upload_{prgArgs.table}_Issues.xlsx"
 
         logger.info(f"[Upd_djCOADD] Table: {prgArgs.table}") 
         logger.info(f"[Upd_djCOADD] User:  {prgArgs.appuser}") 
 
-
         if int(prgArgs.test)>0:
-            qryStr = Chem_Structure.objects.all().values('structure_id')[:int(prgArgs.test)]
+            qryCmp = Compound.objects.all().values('compound_id')[:int(prgArgs.test)]
         else:    
-            qryStr = Chem_Structure.objects.all().values('structure_id')
+            qryCmp = Compound.objects.all().values('compound_id')
 
-        nEntries = qryStr.count()
-        logger.info(f" [{prgArgs.table}] Structures: {nEntries}")
-
+        nEntries = qryCmp.count()
+        logger.info(f" [{prgArgs.table}] Compounds: {nEntries}")
 
         entrySQL = """
-                Select sc.structure_id, sc.sum_assay_id,
-                    sc.n_assays, sc.n_actives, sc.act_types,  sc.act_score,
-                    sc.inhibition_ave, sc.inhibition_std, sc.inhibition_min, sc.inhibition_max,
-                    sc.mscore_ave
-                From  dsummary.sum_structure_sc sc
+                Select dr.cmpbatch_id, dr.sum_assay_id,
+                    dr.n_assays, dr.n_actives, dr.act_types,  dr.act_score, dr.pscore,
+                    dr.inhibit_max_ave,
+                    dr.drval_type result_type, dr.drval_unit result_unit,
+                    dr.drval_max result_max, dr.drval_min result_min, dr.drval_median result_median, dr.drval_unit result_unit,
+                    dr.drval_std_geomean result_std_geomean, dr.drval_std_unit result_std_unit
+                From  dsummary.sum_cmpbatch_dr dr
                 """
-        cpyFields = ['n_assays', 'n_actives','act_types', 'act_score',
-                     'inhibition_ave', 'inhibition_std', 'inhibition_min', 'inhibition_max','mscore_ave',
+        cpyFields = ['n_assays', 'n_actives','act_types', 'act_score','pscore','inhibit_max_ave',
+                     'result_max', 'result_min', 'result_median',
+                     'result_std_geomean',
                      'pub_date'
                 ]
-        dictFields = ['pub_status','result_type' ]
+        dictFields = ['pub_status','result_unit','result_std_unit','result_type' ]
 
         SourceName = 'CO-ADD'
         djSource = Source.get(None,SourceName)
@@ -99,9 +100,9 @@ def main(prgArgs,djDir):
             OutDict = []
 
             pgDB = openCoaddDB(verbose=0)
-            for e in tqdm(qryStr, total= nEntries, desc=prgArgs.table):
-                sid = e['structure_id']
-                qrySQL = entrySQL + f" Where sc.structure_id = '{sid}' "
+            for e in tqdm(qryCmp, total= nEntries, desc=prgArgs.table):
+                cid = e['compound_id']
+                qrySQL = entrySQL + f" Where dr.cmpbatch_id = '{cid}' and dr.n_cmpbatches = 1 "
                 df = pd.DataFrame(pgDB.get_dict_list(qrySQL))
 
                 for idx,row in df.iterrows():
@@ -109,23 +110,23 @@ def main(prgArgs,djDir):
                     validStatus = True
                     NewEntry = False
                     djAssay = Assay.get(None,SourceName,row['sum_assay_id'])
-                    djStructure = Chem_Structure.get(row['structure_id'])
+                    djCompound = Compound.get(row['cmpbatch_id'])
 
-                    if djAssay and djStructure and djSource: 
+                    if djAssay and djCompound and djSource: 
                         
-                        djObj = Activity_Structure_Inhibition.get(djStructure,djAssay,djSource)
+                        djObj = Activity_Compound_DoseResponse.get(djCompound,djAssay,djSource)
                         if djObj is None:
                             NewEntry = True
-                            djObj = Activity_Structure_Inhibition()
-                            djObj.structure_id  = djStructure
+                            djObj = Activity_Compound_DoseResponse()
+                            djObj.compound_id  = djCompound
                             djObj.assay_id  = djAssay
                             djObj.source_id = djSource
-                        
 
-                        row['result_type'] = 'Inhibition'
                         set_dictFields(djObj,row,cpyFields)
                         set_Dictionaries(djObj,row,dictFields)
-                        djObj.set_actscores(ZScore=True)
+
+                        djObj.result_prefix, djObj.result_value,_ = split_DR(djObj.result_median)
+                        djObj.set_actscores()
 
                         validStatus = True
                         djObj.init_fields()
@@ -134,7 +135,7 @@ def main(prgArgs,djDir):
                             validStatus = False
                             OutNumbers['Failed'] += 1
                             row.update(validDict)
-                            #logger.warning(f"{djObj.structure_id} {validDict} ")
+                            logger.warning(f"{djObj.structure_id} {validDict} ")
                             OutDict.append(row)
 
                         if validStatus:
@@ -149,11 +150,10 @@ def main(prgArgs,djDir):
                         if djAssay is None:
                             row["Warning"] = f" Assay {row['sum_assay_id']} not Found in {SourceName}"
                             #logger.warning(f" {sid} Assay {row['sum_assay_id']} not Found in {SourceName}")
-                        if djStructure is None:
-                            row["Error"] = f" Structure  {sid} not Found"
-                            logger.error(f" {sid} Structure not Found")
+                        if djCompound is None:
+                            row["Error"] = f" Compound  {cid} not Found"
+                            logger.error(f" {cid} Compound not Found")
                         OutDict.append(row)
-
 
                 OutNumbers['Processed'] += len(df)
 
@@ -171,7 +171,7 @@ def main(prgArgs,djDir):
 if __name__ == "__main__":
 
     print("-------------------------------------------------------------------")
-    logger.info("Running : ",sys.argv)
+    print("Running : ",sys.argv)
     print("-------------------------------------------------------------------")
 
 

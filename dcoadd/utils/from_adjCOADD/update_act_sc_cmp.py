@@ -72,7 +72,7 @@ def main(prgArgs,djDir):
             qryCmp = Compound.objects.all().values('compound_id')
 
         nEntries = qryCmp.count()
-        logger.info(f" [{prgArgs.table}] Structures: {nEntries}")
+        logger.info(f" [{prgArgs.table}] Compounds: {nEntries}")
 
 
         entrySQL = """

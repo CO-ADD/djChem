@@ -17,7 +17,7 @@ import django
 # Logger ----------------------------------------------------------------
 import logging
 logTime= datetime.datetime.now()
-logName = "Upload_ActDR"
+logName = "Upload_ActStrDR"
 logFileName = os.path.join("log",f"x{logName}_{logTime:%Y%m%d_%H%M%S}.log")
 logLevel = logging.INFO 
 
@@ -42,6 +42,7 @@ def main(prgArgs,djDir):
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "adjCHEM.settings")
     django.setup()
 
+    logging.getLogger().addHandler(logging.FileHandler(logFileName,mode='w'))
     logger.info(f"Python         : {sys.version.split('|')[0]}")
     logger.info(f"Conda Env      : {os.environ['CONDA_DEFAULT_ENV']}")
     #logger.info(f"LogFile        : {logFileName}")
