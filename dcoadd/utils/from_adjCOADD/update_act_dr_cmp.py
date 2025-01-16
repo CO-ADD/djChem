@@ -135,7 +135,7 @@ def main(prgArgs,djDir):
                             validStatus = False
                             OutNumbers['Failed'] += 1
                             row.update(validDict)
-                            logger.warning(f"{djObj.structure_id} {validDict} ")
+                            logger.warning(f"{djObj.compound_id} {validDict} ")
                             OutDict.append(row)
 
                         if validStatus:
