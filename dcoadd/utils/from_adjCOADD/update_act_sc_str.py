@@ -16,17 +16,12 @@ import django
 
 # Logger ----------------------------------------------------------------
 import logging
-logTime= datetime.datetime.now()
-logName = "Upload_ActStrDR"
-logFileName = os.path.join("log",f"x{logName}_{logTime:%Y%m%d_%H%M%S}.log")
-logLevel = logging.INFO 
-
-logger = logging.getLogger(__name__)
 logging.basicConfig(
     format="[%(name)-20s] %(message)s ",
-    handlers=[logging.FileHandler(logFileName,mode='w'),logging.StreamHandler()],
-#    handlers=[logging.StreamHandler()],
-    level=logLevel)
+#    handlers=[logging.FileHandler(logFileName,mode='w'),logging.StreamHandler()],
+    handlers=[logging.StreamHandler()],
+    level=logging.INFO )
+logger = logging.getLogger(__name__)
 
 #-----------------------------------------------------------------------------
 
@@ -38,11 +33,16 @@ def openCoaddDB(User='coadd', Passwd='MtMaroon23',DataBase="coadd",verbose=1):
 #-----------------------------------------------------------------------------
 def main(prgArgs,djDir):
 
+    ProgName = "Upload_ActStrSC"
+
     sys.path.append(djDir['djPrj'])
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "adjCHEM.settings")
     django.setup()
 
+    logTime= datetime.datetime.now()
+    logFileName = os.path.join("log",f"x{ProgName}_{logTime:%Y%m%d_%H%M%S}.log")
     logging.getLogger().addHandler(logging.FileHandler(logFileName,mode='w'))
+
     logger.info(f"Python         : {sys.version.split('|')[0]}")
     logger.info(f"Conda Env      : {os.environ['CONDA_DEFAULT_ENV']}")
     logger.info(f"LogFile        : {logFileName}")
@@ -60,10 +60,11 @@ def main(prgArgs,djDir):
     # ---------------------------------------------------------------------
     if prgArgs.table == 'ActStructureSC':
 
-        OutFile = f"Upload_{prgArgs.table}_Issues_{logTime:%Y%m%d_%H%M%S}.xlsx"
+        OutFile = f"{ProgName}_Issues_{logTime:%Y%m%d_%H%M%S}.xlsx"
 
+        logger.info(f"[Upd_djCOADD] Prog : {ProgName}") 
         logger.info(f"[Upd_djCOADD] Table: {prgArgs.table}") 
-        logger.info(f"[Upd_djCOADD] User:  {prgArgs.appuser}") 
+        logger.info(f"[Upd_djCOADD] User : {prgArgs.appuser}") 
 
 
         if int(prgArgs.test)>0:
@@ -159,14 +160,14 @@ def main(prgArgs,djDir):
 
         pgDB.close()
         if len(OutDict) > 0:
-            logger.info(f"Writing Issues: {OutFile}")
+            logger.info(f" [{prgArgs.table}] Writing Issues: {OutFile}")
             outDF = pd.DataFrame(OutDict)
             outDF.to_excel(OutFile)
         else:
-            logger.info(f"No Issues")
+            logger.info(f" [{prgArgs.table}] No Issues")
 
         logger.info(f"{OutNumbers}")
-
+        logger.info(f" [{prgArgs.table}] END ----------------------------")
 #==============================================================================
 if __name__ == "__main__":
 
