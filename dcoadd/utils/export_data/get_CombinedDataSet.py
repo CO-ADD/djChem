@@ -79,7 +79,7 @@ def main(prgArgs):
 
         logger.info(f'[SumData by Structure] DR Pivot ')
         pivDRF = dfDR.pivot_table(index=IndexCol,columns=ColumnsCol,values=['inhibit_max_ave','act_score','pscore'], aggfunc='max' )
-        pivDRS = dfDR.pivot_table(index=IndexCol,columns=ColumnsCol,values=['result_std_geomean'], aggfunc=lambda x: x[0] )
+        pivDRS = dfDR.pivot_table(index=IndexCol,columns=ColumnsCol,values=['result_std_geomean'], aggfunc=lambda x: x.iloc[0] )
         logger.info(f"[SumData by Structure] DR Pivot --> {len(pivDRF):_}")
         
         _colnames = []
@@ -129,9 +129,9 @@ def main(prgArgs):
         # with pd.ExcelWriter(xlsFile) as writer:
         #    pivStruct.to_excel(writer, sheet_name='Structures')
 
-        if prgArgs.dataset == 'Current' and prgArgs.upload:
-            for idx, row in tqdm(pivStruct.iterrows(), total=len(pivStruct), desc = 'Upload pivStructure'):
-                i = 1
+        # if prgArgs.dataset == 'Current' and prgArgs.upload:
+        #     for idx, row in tqdm(pivStruct.iterrows(), total=len(pivStruct), desc = 'Upload pivStructure'):
+        #         i = 1
 
 #==============================================================================
 if __name__ == "__main__":

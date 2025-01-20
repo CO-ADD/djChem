@@ -285,7 +285,7 @@ def apply_sc_gnmemb(s,iCutoff=25):
         }
     
     for k in GNDict.keys():
-        if not np.isnan(s[GNDict[k][1]]) and not np.isnan(s[GNDict[k][0]]):
+        if GNDict[k][1] in s and GNDict[k][0] in s:
             if (s[GNDict[k][1]] - s[GNDict[k][0]]) > iCutoff:
                 # Efflux
                 s[f'{k}_sc_efflux'] = 1
@@ -307,7 +307,7 @@ def apply_dr_gnmemb(s,pCutoff=0.2):
         }
     
     for k in GNDict.keys():
-        if not np.isnan(s[GNDict[k][1]]) and not np.isnan(s[GNDict[k][0]]):
+        if GNDict[k][1] in s and GNDict[k][0] in s:
             if (s[GNDict[k][1]] - s[GNDict[k][0]]) > pCutoff:
                 # Efflux
                 s[f'{k}_dr_efflux'] = 1
