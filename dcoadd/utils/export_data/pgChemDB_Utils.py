@@ -278,25 +278,15 @@ def get_DoseResponse_byCompound(DataSet='Public', ProjectTypes=['CO-ADD','WADI']
 def apply_sc_gnmemb(s,iCutoff=25):
 #-----------------------------------------------------------------------------
     
-
+    GNDict = {}
     if not np.isnan(s['PaMexX_sc_inhib']) and not np.isnan(s['Pa_sc_inh']):
         if s['iPA'] > iCutoff or s['iGN_211'] > iCutoff:
-            if (s['iGN_211'] - s['iPA']) > iCutoff:
+            if (s['PaMexX_sc_inhib'] - s['Pa_sc_inh']) > iCutoff:
                 # Efflux
                 s['baMecX'] = 1
-            # elif  (s['PA'] - s['iGN_211']) > iCutoff:
-            #     # Influx
-            #     s['oaMecX'] =0.625
-            #     s['baMecX'] = 'infflux'
             else:
                 # Penetrate
                 s['baMecX'] = 0
-            #    s['oaMecX'] = 0.875
-        # else:
-        #     # unknown
-        #     s['oaMecX'] = 0.125
-    # else:
-    #     s['baMecX'] = 'no data'
         
     if not np.isnan(s['iGN_049']) and not np.isnan(s['iGN_001']):
         if s['iGN_001'] > iCutoff or s['iGN_049'] > iCutoff:

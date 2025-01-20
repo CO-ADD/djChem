@@ -93,8 +93,8 @@ def main(prgArgs):
                 _colnames.append(f"{col_idx[1]}_dr_xx")
         pivDRF.columns = _colnames
 
-        logger.info(f'[SumData by Structure] DR Add GN-Memb ')
-        pivDRF = pivDRF.apply(apply_sc_gnmemb,axis=1)
+        # logger.info(f'[SumData by Structure] DR Add GN-Memb ')
+        # pivDRF = pivDRF.apply(apply_sc_gnmemb,axis=1)
 
         _colnames = []
         for col_idx in pivDRS.columns.to_flat_index():
