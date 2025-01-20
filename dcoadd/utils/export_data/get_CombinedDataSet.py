@@ -49,6 +49,8 @@ def main(prgArgs):
     if prgArgs.dataset in ['Public','Current']:
 
         BaseName = f'COADD_{prgArgs.dataset}'
+        if prgArgs.outdir:
+            BaseName = os.path.join(prgArgs.outdir,BaseName)
 
         IndexCol = 'structure_id'
         ColumnsCol = 'sum_assay_code'
