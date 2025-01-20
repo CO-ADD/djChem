@@ -42,6 +42,7 @@ class Assay(AuditModel):
 
     assay_id = models.CharField(max_length=15, primary_key=True, verbose_name = "Assay ID")
     assay_code = models.CharField(max_length=50, blank=True, verbose_name = "Assay Code")
+    sum_assay_code = models.CharField(max_length=10, blank=True, verbose_name = "Sum Assay Code")
     assay_notes = models.CharField(max_length=150, blank=True, verbose_name = "Notes")
     assay_type = models.CharField(max_length=50, blank=True, verbose_name = "Assay Type")
     organism = models.CharField(max_length=50, blank=True, verbose_name = "Organism")
@@ -911,3 +912,52 @@ class Activity_Structure_Inhibition(AuditModel):
 #     #     else:
 #     #         super(Testplate, self).save(*args, **kwargs) 
 
+#-------------------------------------------------------------------------------------------------
+class Activity_Structure_Summary(AuditModel):
+    """
+    List of Summary Activity for each Structure
+    """
+#-------------------------------------------------------------------------------------------------
+    Choice_Dictionary = {
+        'result_type':'Result_Type',
+        'pub_status':'Pub_Status',
+    }
+
+
+    ID_SEQUENCE = None
+
+    #udi_key = models.CharField(max_length=24, unique=True, blank=False, verbose_name = "UDI")
+
+    structure_id = models.ForeignKey(Chem_Structure, blank=False, verbose_name = "Structure ID", on_delete=models.DO_NOTHING,
+        db_column="structure_id", related_name="%(class)s_structure_id")
+    assay_id = models.ForeignKey(Assay, blank=False, verbose_name = "Assay", on_delete=models.DO_NOTHING,
+        db_column="assay_id", related_name="%(class)s_assay_id")
+    source_id = models.ForeignKey(Source, blank=False, verbose_name = "Source", on_delete=models.DO_NOTHING,
+        db_column="source_id", related_name="%(class)s_source_id")
+
+    sc_inhib = models.DecimalField(default=-1, max_digits=9, decimal_places=3, verbose_name = "SC Inhib")
+    sc_actscore = models.DecimalField(default=-1, max_digits=9, decimal_places=3, verbose_name = "SC ActScore")
+    dr_actscore = models.DecimalField(default=-1, max_digits=9, decimal_places=3, verbose_name = "DR ActScore")
+    dr_pscore = models.DecimalField(default=-1, max_digits=9, decimal_places=3, verbose_name = "DR pScore")
+    dr_result = models.CharField(max_length=20, blank=True, verbose_name = "DR Result")
+    dr_inhib = models.DecimalField(default=-1, max_digits=9, decimal_places=3, verbose_name = "DR Inhib")
+    sum_class = models.DecimalField(default=-1, max_digits=9, decimal_places=3, verbose_name = "DR pScore")
+
+    #------------------------------------------------
+    class Meta:
+        app_label = 'dcoadd'
+        db_table = 'act_struct_sum'
+        ordering=['structure_id']
+        constraints = [
+            models.UniqueConstraint(name='actstrsum_pk_cst', fields=['structure_id', 'assay_id','source_id'], )
+        ]        
+        indexes = [
+            models.Index(name="actstrsum_sid_idx", fields=['structure_id']),
+            models.Index(name="actstrsum_ass_idx", fields=['assay_id']),
+            models.Index(name="actstrsum_src_idx", fields=['source_id']),
+            models.Index(name="actstrsum_sci_idx", fields=['sc_inhib']),
+            models.Index(name="actstrsum_sca_idx", fields=['sc_actscore']),
+            models.Index(name="actstrsum_drp_idx", fields=['dr_pscore']),
+            models.Index(name="actstrsum_dri_idx", fields=['dr_inhib']),
+            models.Index(name="actstrsum_sum_idx", fields=['sum_class']),
+        ]
