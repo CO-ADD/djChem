@@ -79,7 +79,7 @@ def get_Assays(DataSet='Public', ProjectTypes=['CO-ADD'], test=0):
 
     pgDB = openChemDB(verbose=0)
     qryDF = pd.DataFrame(pgDB.get_dict_list(qrySQL)).set_index('assay_id')
-    logger.info(f"[Assay] {DataSet} {len(qryDF):_} ")
+    logger.info(f"[Assay] {DataSet}: {len(qryDF):_} ")
     pgDB.close()
 
     return(qryDF)
@@ -111,7 +111,7 @@ def get_Structures(DataSet='Public', ProjectTypes=['CO-ADD','WADI'], test=0):
     pgDB = openChemDB(verbose=0)
     #nEntries = pd.read_sql_query(qrySQL, pgDB.db).values[0, 0]
     qryDF = pd.DataFrame(pgDB.get_dict_list(qrySQL)).set_index('structure_id')
-    logger.info(f"[Structure] {DataSet} {len(qryDF):_} ")
+    logger.info(f"[Structure] {DataSet}: {len(qryDF):_} ")
     pgDB.close()
 
 
@@ -140,7 +140,7 @@ def get_Compounds(DataSet='Public', ProjectTypes=['CO-ADD','WADI'], test=0):
     pgDB = openChemDB(verbose=0)
 
     qryDF = pd.DataFrame(pgDB.get_dict_list(qrySQL)).set_index('compound_id')
-    logger.info(f"[Compounds] {DataSet} {len(qryDF):_} ")
+    logger.info(f"[Compounds] : {len(qryDF):_} ")
 
     pgDB.close()
 
@@ -172,7 +172,7 @@ def get_SingleConc_byStructure(DataSet='Public', ProjectTypes=['CO-ADD','WADI'],
 
     pgDB = openChemDB(verbose=0)
     qryDF = pd.DataFrame(pgDB.get_dict_list(qrySQL)).set_index('structure_id')
-    logger.info(f"[ActData Structure SC] {DataSet} {len(qryDF):_} ")
+    logger.info(f"[ActData Structure SC] : {len(qryDF):_} ")
     pgDB.close()
 
     return(qryDF)
@@ -203,7 +203,7 @@ def get_SingleConc_byCompound(DataSet='Public', ProjectTypes=['CO-ADD','WADI'], 
 
     pgDB = openChemDB(verbose=0)
     qryDF = pd.DataFrame(pgDB.get_dict_list(qrySQL)).set_index('compound_id')
-    logger.info(f"[ActData Compound SC] {DataSet} {len(qryDF):_} ")
+    logger.info(f"[ActData Compound SC] {DataSet}: {len(qryDF):_} ")
     pgDB.close()
 
     return(qryDF)
@@ -236,7 +236,7 @@ def get_DoseResponse_byStructure(DataSet='Public', ProjectTypes=['CO-ADD','WADI'
 
     pgDB = openChemDB(verbose=0)
     qryDF = pd.DataFrame(pgDB.get_dict_list(qrySQL)).set_index('structure_id')
-    logger.info(f"[ActData Structure DR] {DataSet} {len(qryDF):_} ")
+    logger.info(f"[ActData Structure DR] : {len(qryDF):_} ")
     pgDB.close()
 
     return(qryDF)
@@ -268,7 +268,7 @@ def get_DoseResponse_byCompound(DataSet='Public', ProjectTypes=['CO-ADD','WADI']
 
     pgDB = openChemDB(verbose=0)
     qryDF = pd.DataFrame(pgDB.get_dict_list(qrySQL)).set_index('compound_id')
-    logger.info(f"[ActData Compound DR] {DataSet} {len(qryDF):_} ")
+    logger.info(f"[ActData Compound DR] {DataSet}: {len(qryDF):_} ")
     pgDB.close()
 
     return(qryDF)
@@ -278,56 +278,41 @@ def get_DoseResponse_byCompound(DataSet='Public', ProjectTypes=['CO-ADD','WADI']
 def apply_sc_gnmemb(s,iCutoff=25):
 #-----------------------------------------------------------------------------
     
-    GNDict = {}
-    if not np.isnan(s['PaMexX_sc_inhib']) and not np.isnan(s['Pa_sc_inh']):
-        if s['iPA'] > iCutoff or s['iGN_211'] > iCutoff:
-            if (s['PaMexX_sc_inhib'] - s['Pa_sc_inh']) > iCutoff:
+    GNDict = {
+        'EcTolC': ['Ec_sc_inh','EcTolC_sc_inhib'],
+        'EcLpxC': ['Ec_sc_inh','EcLpxC_sc_inhib'],
+        'PaMexX': ['Pa_sc_inh','PaMexX_sc_inhib'],
+        }
+    
+    for k in GNDict.keys():
+        if not np.isnan(s[GNDict[k][1]]) and not np.isnan(s[GNDict[k][0]]):
+            if (s[GNDict[k][1]] - s[GNDict[k][0]]) > iCutoff:
                 # Efflux
-                s['baMecX'] = 1
+                s[f'{k}_sc_efflux'] = 1
             else:
                 # Penetrate
-                s['baMecX'] = 0
-        
-    if not np.isnan(s['iGN_049']) and not np.isnan(s['iGN_001']):
-        if s['iGN_001'] > iCutoff or s['iGN_049'] > iCutoff:
-            if (s['iGN_049'] - s['iGN_001']) > iCutoff:
-                s['baTolC'] = 1
-            else:
-                s['baTolC'] = 0
-        
-    if not np.isnan(s['iGN_046']) and not np.isnan(s['iGN_001']):
-        if s['iGN_001'] > iCutoff or s['iGN_046'] > iCutoff:
-            if (s['iGN_046'] - s['iGN_001']) > iCutoff:
-                s['baLpxC'] = 1
-            else:
-                s['baLpxC'] = 0
-        
+                s[f'{k}_sc_efflux'] = 0
+                
     return(s)
 
 
 #-----------------------------------------------------------------------------
-def apply_dr_gnmemb(s):
+def apply_dr_gnmemb(s,pCutoff=0.2):
 #-----------------------------------------------------------------------------
 
-    if not np.isnan(s['daGN_211']) and not np.isnan(s['daGN_042']):   
-        if s['daGN_211']>0 or s['daGN_042']>0:   
-            if s['daGN_211'] > s['daGN_042']:
-                s['baMecX'] = 1
+    GNDict = {
+        'EcTolC': ['Ec_dr_psc','EcTolC_dr_psc'],
+        'EcLpxC': ['Ec_dr_psc','EcLpxC_dr_psc'],
+        'PaMexX': ['Pa_dr_psc','PaMexX_dr_psc'],
+        }
+    
+    for k in GNDict.keys():
+        if not np.isnan(s[GNDict[k][1]]) and not np.isnan(s[GNDict[k][0]]):
+            if (s[GNDict[k][1]] - s[GNDict[k][0]]) > pCutoff:
+                # Efflux
+                s[f'{k}_dr_efflux'] = 1
             else:
-                s['baMecX'] = 0
+                # Penetrate
+                s[f'{k}_dr_efflux'] = 0
                 
-    if not np.isnan(s['daGN_049']) and not np.isnan(s['daGN_001']):   
-        if s['daGN_049']>0 or s['daGN_001']>0:   
-            if s['daGN_049'] > s['daGN_001']:
-                s['baTolC'] = 1
-            else:
-                s['baTolC'] = 0
-
-    if not np.isnan(s['daGN_046']) and not np.isnan(s['daGN_001']):   
-        if s['daGN_046']>0 or s['daGN_001']>0:   
-            if s['daGN_046'] > s['daGN_001']:
-                s['baLpxC'] = 1
-            else:
-                s['baLpxC'] = 0
-                
-    return(s) 
+    return(s)
