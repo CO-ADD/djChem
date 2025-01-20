@@ -122,11 +122,11 @@ def main(prgArgs):
     if prgArgs.dataset in ['Public','Current']:
 
         if prgArgs.dataset == 'Public':
-            BaseName = f'COADD_{prgArgs.dataset}_2024'
+            BaseName = f'COADD_{prgArgs.dataset}2024'
         elif prgArgs.dataset == 'Current':
-            BaseName = f'COADD_{prgArgs.dataset}_{logTime:%Y%m%d}'
+            BaseName = f'COADD_{prgArgs.dataset}{logTime:%Y%m%d}'
         else:
-            BaseName = f'COADD_{logTime:%Y%m%d_%H%M}'
+            BaseName = f'COADD_{logTime:%Y%m%d%H%M}'
 
         if prgArgs.outdir:
             BaseName = os.path.join(prgArgs.outdir,BaseName)
@@ -179,8 +179,8 @@ def main(prgArgs):
 
 
         # Excel Output
-        xlsFile = os.path.join(f'{BaseName}_byStructure.xlsx')
-        logger.info(f'[ActData by Structure] --> {xlsFile}')
+        # xlsFile = os.path.join(f'{BaseName}_byStructure.xlsx')
+        # logger.info(f'[ActData by Structure] --> {xlsFile}')
         # with pd.ExcelWriter(xlsFile) as writer:
         #    dfStructure.to_excel(writer, sheet_name='Structures')
         #    dfAssay.to_excel(writer, sheet_name='Assays')
@@ -202,8 +202,6 @@ def main(prgArgs):
         # _neworder = scPIV.columns.reindex(_asscode, level=1)
         # print(f" [_neworder] {_neworder}")
         # scPIV = scPIV.reindex(columns=_neworder[0])
-
-
 
 
 #==============================================================================
