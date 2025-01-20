@@ -38,13 +38,6 @@ def main(prgArgs):
     logger.info(f"Conda Env      : {os.environ['CONDA_DEFAULT_ENV']}")
     logger.info(f"LogFile        : {logFileName}")
 
-    # if prgArgs.outdir is None:
-    #     PubDir = 'C:/Data/COADD/DataSet'
-    # else:
-    #     PubDir = prgArgs.outdir
-    # if not os.path.exists(PubDir):
-    #     os.makedirs(PubDir)
-
     # ---------------------------------------------------------------------
     if prgArgs.dataset in ['Public','Current']:
 
@@ -56,6 +49,8 @@ def main(prgArgs):
             BaseName = f'COADD_{logTime:%Y%m%d%H%M}'
 
         if prgArgs.outdir:
+            if not os.path.exists(prgArgs.outdir):
+                os.makedirs(prgArgs.outdir)
             BaseName = os.path.join(prgArgs.outdir,BaseName)
 
         IndexCol = 'structure_id'
@@ -73,7 +68,7 @@ def main(prgArgs):
             if 'act_score' in col_idx:
                 _colnames.append(f"{col_idx[1]}_sc_act")
             elif 'inhibition_ave' in col_idx:
-                _colnames.append(f"{col_idx[1]}_sc_inh")
+                _colnames.append(f"{col_idx[1]}_sc_inhib")
             else:
                 _colnames.append(f"{col_idx[1]}_sc_xx")
         pivSCF.columns = _colnames
@@ -92,9 +87,9 @@ def main(prgArgs):
             if 'act_score' in col_idx:
                 _colnames.append(f"{col_idx[1]}_dr_act")
             elif 'inhibit_max_ave' in col_idx:
-                _colnames.append(f"{col_idx[1]}_dr_inh")
+                _colnames.append(f"{col_idx[1]}_dr_inhib")
             elif 'pscore' in col_idx:
-                _colnames.append(f"{col_idx[1]}_dr_psc")
+                _colnames.append(f"{col_idx[1]}_dr_pscore")
             else:
                 _colnames.append(f"{col_idx[1]}_dr_xx")
         pivDRF.columns = _colnames
@@ -103,7 +98,7 @@ def main(prgArgs):
         _colnames = []
         for col_idx in pivDRS.columns.to_flat_index():
             if 'result_std_geomean' in col_idx:
-                _colnames.append(f"{col_idx[1]}_dr_res")
+                _colnames.append(f"{col_idx[1]}_dr_result")
             else:
                 _colnames.append(f"{col_idx[1]}_dr_xx")
         pivDRS.columns = _colnames
@@ -114,6 +109,7 @@ def main(prgArgs):
         pivStruct = pd.merge(left=pivStruct, right=pivDRS, how= 'outer', on='structure_id')
 
         # Add Properties  ----------------------------------------------------------------------------------------
+        logger.info(f"[SumData by Structure] Columns: {list(pivStruct.columns)}")
         logger.info(f"[SumData by Structure] SC Add GN-Memb ")
         pivStruct = pivStruct.apply(apply_sc_gnmemb,axis=1)
         logger.info(f"[SumData by Structure] DR Add GN-Memb ")
@@ -134,7 +130,7 @@ def main(prgArgs):
         #    pivStruct.to_excel(writer, sheet_name='Structures')
 
         if prgArgs.dataset == 'Current' and prgArgs.upload:
-            for idx, row in tqdm(pivStruct.iterrows(), total=len(pivStruct), desc = 'Upload pivStructure':
+            for idx, row in tqdm(pivStruct.iterrows(), total=len(pivStruct), desc = 'Upload pivStructure'):
                 i = 1
 
 #==============================================================================

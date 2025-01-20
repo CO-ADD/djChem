@@ -279,9 +279,9 @@ def apply_sc_gnmemb(s,iCutoff=25):
 #-----------------------------------------------------------------------------
     
     GNDict = {
-        'EcTolC': ['Ec_sc_inh','EcTolC_sc_inhib'],
-        'EcLpxC': ['Ec_sc_inh','EcLpxC_sc_inhib'],
-        'PaMexX': ['Pa_sc_inh','PaMexX_sc_inhib'],
+        'EcTolC': ['Ec_sc_inhib','EcTolC_sc_inhib'],
+        'EcLpxC': ['Ec_sc_inhib','EcLpxC_sc_inhib'],
+        'PaMexX': ['Pa_sc_inhib','PaMexX_sc_inhib'],
         }
     
     for k in GNDict.keys():
@@ -301,9 +301,9 @@ def apply_dr_gnmemb(s,pCutoff=0.2):
 #-----------------------------------------------------------------------------
 
     GNDict = {
-        'EcTolC': ['Ec_dr_psc','EcTolC_dr_psc'],
-        'EcLpxC': ['Ec_dr_psc','EcLpxC_dr_psc'],
-        'PaMexX': ['Pa_dr_psc','PaMexX_dr_psc'],
+        'EcTolC': ['Ec_dr_pscore','EcTolC_dr_pscore'],
+        'EcLpxC': ['Ec_dr_pscore','EcLpxC_dr_pscore'],
+        'PaMexX': ['Pa_dr_pscore','PaMexX_dr_pscore'],
         }
     
     for k in GNDict.keys():

@@ -129,6 +129,8 @@ def main(prgArgs):
             BaseName = f'COADD_{logTime:%Y%m%d%H%M}'
 
         if prgArgs.outdir:
+            if not os.path.exists(prgArgs.outdir):
+                os.makedirs(prgArgs.outdir)
             BaseName = os.path.join(prgArgs.outdir,BaseName)
 
         # Projects
