@@ -11,7 +11,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 from zSql import zSqlConnector
-
+from zDjango.djUtils import init_django_dir
 import django
 
 # Logger ----------------------------------------------------------------
@@ -195,19 +195,7 @@ if __name__ == "__main__":
     prgArgs = prgParser.parse_args()
 
     # Django -------------------------------------------------------------
-    djDir = {}
-    if prgArgs.django == 'Meran':
-        djDir['djPrj'] = "D:/Code/zdjCode/djCHEM"
-    #   uploadDir = "C:/Code/A02_WorkDB/03_Django/adjCOADD/utilities/upload_data/Data"
-    #   orgdbDir = "C:/Users/uqjzuegg/The University of Queensland/IMB CO-ADD - OrgDB"
-    elif prgArgs.django == 'Work':
-        djDir['djPrj'] = "/home/uqjzuegg/xhome/Code/zdjCode/djChem"
-        djDir['dataDir'] = "/home/uqjzuegg/xhome/Code/zdjCode/djChem/dcoadd/data"
-    #     uploadDir = "C:/Data/A02_WorkDB/03_Django/adjCOADD/utilities/upload_data/Data"
-    elif prgArgs.django == 'Laptop':
-        djDir['djPrj'] = "C:/Code/zdjCode/djCHEM"
-        djDir['dataDir'] = "C:/Code/zdjCode/djCHEM/dcoadd/data"
-
+    djDir = init_django_dir(prgArgs,"djChem")
     if djDir:
         main(prgArgs,djDir)
         print("-------------------------------------------------------------------")

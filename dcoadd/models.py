@@ -235,7 +235,6 @@ class Chem_Structure(AuditModel):
     ffp2 = models.BfpField(null=True,blank=True,verbose_name = "Feature Morgan FP (FCFP)")
     mfp2 = models.BfpField(null=True,blank=True,verbose_name = "Morgan FP (ECFP)")
 
-
     inchikey = models.CharField(max_length=50, blank=True,verbose_name ="InChiKey")
     mf = models.CharField(max_length=500, blank=True, verbose_name = "MF")
     mw = models.DecimalField(max_digits=12, decimal_places=3, default=0, blank=True, verbose_name ="MW")
