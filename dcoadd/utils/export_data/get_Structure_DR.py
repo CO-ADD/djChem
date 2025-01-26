@@ -147,6 +147,7 @@ def main(prgArgs):
             """
     
     Tables = {
+        'HEK293': 'HEK293 [Res]',
         'Sa': 'Sa [43300]',
         'EcTolC': 'Ec [tolC]',
         'EcLpxC': 'Ec [lpxC]',
