@@ -82,6 +82,7 @@ def main(prgArgs):
         pivDRS = dfDR.pivot_table(index=IndexCol,columns=ColumnsCol,values=['result_std_geomean'], aggfunc=lambda x: x.iloc[0] )
         logger.info(f"[SumData by Structure] DR Pivot --> {len(pivDRF):_}")
         
+        
         _colnames = []
         for col_idx in pivDRF.columns.to_flat_index():
             if 'act_score' in col_idx:
