@@ -197,7 +197,7 @@ if __name__ == "__main__":
     prgArgs = prgParser.parse_args()
 
     # Django -------------------------------------------------------------
-    djDir = init_django_dir(prgArgs,"djCHEM")
+    djDir = init_django_dir(prgArgs,"djChem")
     if djDir:
         main(prgArgs,djDir)
         print("-------------------------------------------------------------------")
