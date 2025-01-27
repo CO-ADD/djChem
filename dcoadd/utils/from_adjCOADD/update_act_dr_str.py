@@ -11,7 +11,6 @@ from pathlib import Path
 from tqdm import tqdm
 
 from zSql import zSqlConnector
-from zDjango.djUtils import init_django_dir
 import django
 
 # Logger ----------------------------------------------------------------
@@ -168,6 +167,8 @@ def main(prgArgs,djDir):
 
 #==============================================================================
 if __name__ == "__main__":
+
+    from zDjango.djUtils import init_django_dir
 
     print("-------------------------------------------------------------------")
     print("Running : ",sys.argv)

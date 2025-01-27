@@ -35,9 +35,12 @@ def main(prgArgs,djDir):
 
     ProgName = "Upload_ActStrSC"
 
-    sys.path.append(djDir['djPrj'])
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "adjCHEM.settings")
     django.setup()
+
+    from dcoadd.models import (Project, Source, Chem_Structure, Compound, Assay,
+                               Activity_Structure_DoseResponse, Activity_Structure_Inhibition)
+    from apputil.utils.set_data import set_Dictionaries,set_dictFields
+    from apputil.utils.bio_data import split_DR
 
     logTime= datetime.datetime.now()
     logFileName = os.path.join("log",f"x{ProgName}_{logTime:%Y%m%d_%H%M%S}.log")
@@ -51,11 +54,6 @@ def main(prgArgs,djDir):
     logger.info(f"Django Folder  : {djDir['djPrj']}")
     logger.info(f"Django Data    : {djDir['dataDir']}")
     logger.info(f"Django Project : {os.environ['DJANGO_SETTINGS_MODULE']}")
-
-    from dcoadd.models import (Project, Source, Chem_Structure, Compound, Assay,
-                               Activity_Structure_DoseResponse, Activity_Structure_Inhibition)
-    from apputil.utils.set_data import set_Dictionaries,set_dictFields
-    from apputil.utils.bio_data import split_DR
 
     # ---------------------------------------------------------------------
     if prgArgs.table == 'ActStructureSC':
@@ -171,6 +169,8 @@ def main(prgArgs,djDir):
 #==============================================================================
 if __name__ == "__main__":
 
+    from zDjango.djUtils import init_django_dir
+
     print("-------------------------------------------------------------------")
     print("Running : ",sys.argv)
     print("-------------------------------------------------------------------")
@@ -197,21 +197,10 @@ if __name__ == "__main__":
     prgArgs = prgParser.parse_args()
 
     # Django -------------------------------------------------------------
-    djDir = {}
-    if prgArgs.django == 'Meran':
-        djDir['djPrj'] = "D:/Code/zdjCode/djCHEM"
-    #   uploadDir = "C:/Code/A02_WorkDB/03_Django/adjCOADD/utilities/upload_data/Data"
-    #   orgdbDir = "C:/Users/uqjzuegg/The University of Queensland/IMB CO-ADD - OrgDB"
-    elif prgArgs.django == 'Work':
-        djDir['djPrj'] = "/home/uqjzuegg/xhome/Code/zdjCode/djChem"
-        djDir['dataDir'] = "/home/uqjzuegg/xhome/Code/zdjCode/djChem/dcoadd/data"
-    #     uploadDir = "C:/Data/A02_WorkDB/03_Django/adjCOADD/utilities/upload_data/Data"
-    elif prgArgs.django == 'Laptop':
-        djDir['djPrj'] = "C:/Code/zdjCode/djCHEM"
-        djDir['dataDir'] = "C:/Code/zdjCode/djCHEM/dcoadd/data"
-
+    djDir = init_django_dir(prgArgs,"djCHEM")
     if djDir:
         main(prgArgs,djDir)
-        logger.info("-------------------------------------------------------------------")
+        print("-------------------------------------------------------------------")
+
 
 #==============================================================================
