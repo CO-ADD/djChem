@@ -129,7 +129,7 @@ def main(prgArgs):
 
         logger.info(f"[SumData by {prgArgs.index}] SC: {len(pivSCF):_} + DR: {len(pivDRF):_} --> {len(pivData):_}")
         logger.info(f"[SumData by {prgArgs.index}] Columns: {list(pivData.columns)}")
-        csvFile = os.path.join(f"{BaseName}_by{prgArgs.index}.csv.gz")
+        csvFile = os.path.join(f"{BaseName}_Merged_by{prgArgs.index}.csv.gz")
         logger.info(f"[SumData by {prgArgs.index}] --> {csvFile}")
         pivData.to_csv(csvFile,compression='gzip')
 
