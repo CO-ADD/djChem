@@ -37,8 +37,10 @@ def openCoaddDB(User='coadd', Passwd='MtMaroon23',DataBase="coadd",verbose=1):
 #-----------------------------------------------------------------------------
 def main(prgArgs,djDir):
 
-    sys.path.append(djDir['djPrj'])
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "adjCHEM.settings")
+    ProgName = "Upload_ActStrSC"
+    # sys.path.append(djDir['djPrj'])
+    # os.environ.setdefault("DJANGO_SETTINGS_MODULE", "adjCHEM.settings")
+
     django.setup()
 
     logging.getLogger().addHandler(logging.FileHandler(logFileName,mode='w'))
@@ -59,7 +61,7 @@ def main(prgArgs,djDir):
     # ---------------------------------------------------------------------
     if prgArgs.table == 'ActStructureDR':
 
-        OutFile = f"Upload_{prgArgs.table}_Issues.xlsx"
+        OutFile = f"{ProgName}_Issues_{logTime:%Y%m%d_%H%M%S}.xlsx"
 
         logger.info(f"[Upd_djCOADD] Table: {prgArgs.table}") 
         logger.info(f"[Upd_djCOADD] User:  {prgArgs.appuser}") 

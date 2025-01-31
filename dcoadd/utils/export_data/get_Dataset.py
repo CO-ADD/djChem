@@ -119,9 +119,9 @@ def main(prgArgs):
     #     os.makedirs(PubDir)
 
     # ---------------------------------------------------------------------
-    if prgArgs.dataset in ['Public','Current']:
+    if prgArgs.dataset in ['Public','Reported','Current']:
 
-        if prgArgs.dataset == 'Public':
+        if prgArgs.dataset in ['Public','Reported']:
             BaseName = f'COADD_{prgArgs.dataset}2024'
         elif prgArgs.dataset == 'Current':
             BaseName = f'COADD_{prgArgs.dataset}{logTime:%Y%m%d}'

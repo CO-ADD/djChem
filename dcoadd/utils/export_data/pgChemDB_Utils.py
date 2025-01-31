@@ -46,6 +46,8 @@ def get_Projects(DataSet='Public', ProjectTypes=['CO-ADD'], test=0):
 
     if DataSet == 'Public':
         qrySQL += " and pub_status = 'Public' "
+    elif DataSet == 'Reported':
+        qrySQL += " and p.pub_status in ('Public','Reported') "
 
     if test>0:
         qrySQL += f" Fetch First {test} Rows Only "
@@ -104,6 +106,8 @@ def get_Structures(DataSet='Public', ProjectTypes=['CO-ADD','WADI'], test=0):
 
     if DataSet == 'Public':
         qrySQL += " Where p.pub_status = 'Public' "
+    elif DataSet == 'Reported':
+        qrySQL += " Where p.pub_status in ('Public','Reported') "
 
     if test>0:
         qrySQL += f" Fetch First {test} Rows Only "
@@ -133,6 +137,8 @@ def get_Compounds(DataSet='Public', ProjectTypes=['CO-ADD','WADI'], test=0):
    
     if DataSet == 'Public':
         qrySQL += " and p.pub_status in ('Public','MissingData') "
+    elif DataSet == 'Reported':
+        qrySQL += " and p.pub_status in ('Public','Reported') "
 
     if test>0:
         qrySQL += f" Fetch First {test} Rows Only "
@@ -165,6 +171,8 @@ def get_SingleConc_byStructure(DataSet='Public', ProjectTypes=['CO-ADD','WADI'],
    
     if DataSet == 'Public':
         qrySQL += " and p.pub_status = 'Public' "
+    elif DataSet == 'Reported':
+        qrySQL += " and p.pub_status in ('Public','Reported') "
 
     if test>0:
         qrySQL += f" Fetch First {test} Rows Only "
@@ -196,6 +204,8 @@ def get_SingleConc_byCompound(DataSet='Public', ProjectTypes=['CO-ADD','WADI'], 
    
     if DataSet == 'Public':
         qrySQL += " and p.pub_status = 'Public' "
+    elif DataSet == 'Reported':
+        qrySQL += " and p.pub_status in ('Public','Reported') "
 
     if test>0:
         qrySQL += f" Fetch First {test} Rows Only "
@@ -229,6 +239,8 @@ def get_DoseResponse_byStructure(DataSet='Public', ProjectTypes=['CO-ADD','WADI'
    
     if DataSet == 'Public':
         qrySQL += " and p.pub_status = 'Public' "
+    elif DataSet == 'Reported':
+        qrySQL += " and p.pub_status in ('Public','Reported') "
 
     if test>0:
         qrySQL += f" Fetch First {test} Rows Only "
@@ -261,6 +273,8 @@ def get_DoseResponse_byCompound(DataSet='Public', ProjectTypes=['CO-ADD','WADI']
    
     if DataSet == 'Public':
         qrySQL += " and p.pub_status = 'Public' "
+    elif DataSet == 'Reported':
+        qrySQL += " and p.pub_status in ('Public','Reported') "
 
     if test>0:
         qrySQL += f" Fetch First {test} Rows Only "
