@@ -39,7 +39,7 @@ def main(prgArgs):
     logger.info(f"LogFile        : {logFileName}")
 
     # ---------------------------------------------------------------------
-    if prgArgs.dataset in ['Public','Reported','Current']:
+    if prgArgs.dataset in ['Public','Reported','Current'] and prgArgs.index in ['Structure','Compound']:
 
         if prgArgs.dataset in ['Public','Reported']:
             BaseName = f'COADD_{prgArgs.dataset}2024'
@@ -53,16 +53,27 @@ def main(prgArgs):
                 os.makedirs(prgArgs.outdir)
             BaseName = os.path.join(prgArgs.outdir,BaseName)
 
-        IndexCol = 'structure_id'
+        logger.info(f"[SumData by {prgArgs.index}] Getting Data ")
+        if prgArgs.index == 'Structure':
+            IndexCol = 'structure_id'
+            dfSC = get_SingleConc_byStructure(DataSet=prgArgs.dataset,test=int(prgArgs.test))
+            dfDR = get_DoseResponse_byStructure(DataSet=prgArgs.dataset,test=int(prgArgs.test))
+
+        elif prgArgs.index == 'Compound':
+            IndexCol = 'compound_id'
+            dfSC = get_SingleConc_byCompound(DataSet=prgArgs.dataset,test=int(prgArgs.test))
+            dfDR = get_DoseResponse_byCompound(DataSet=prgArgs.dataset,test=int(prgArgs.test))
+        else:
+            IndexCol = None
+
         ColumnsCol = 'sum_assay_code'
 
         # SC Data ----------------------------------------------------------------------------------------
-        dfSC = get_SingleConc_byStructure(DataSet=prgArgs.dataset,test=int(prgArgs.test))
         SC_AssayCodes = list(dfSC[ColumnsCol].unique())
 
-        logger.info(f"[SumData by Structure] SC Pivot ")
+        logger.info(f"[SumData by {prgArgs.index}] SC Pivot ")
         pivSCF    = dfSC.pivot_table(index=IndexCol,columns=ColumnsCol,values=['inhibition_ave','act_score'], aggfunc='max' )
-        logger.info(f"[SumData by Structure] SC Pivot --> {len(pivSCF):_}")
+        logger.info(f"[SumData by {prgArgs.index}] SC Pivot --> {len(pivSCF):_}")
         _colnames = []
         for col_idx in pivSCF.columns.to_flat_index():
             if 'act_score' in col_idx:
@@ -74,14 +85,12 @@ def main(prgArgs):
         pivSCF.columns = _colnames
 
         # DR Data ----------------------------------------------------------------------------------------
-        dfDR = get_DoseResponse_byStructure(DataSet=prgArgs.dataset,test=int(prgArgs.test))
         DR_AssayCodes = list(dfDR[ColumnsCol].unique())
 
-        logger.info(f'[SumData by Structure] DR Pivot ')
+        logger.info(f'[SumData by {prgArgs.index}] DR Pivot ')
         pivDRF = dfDR.pivot_table(index=IndexCol,columns=ColumnsCol,values=['inhibit_max_ave','act_score','pscore'], aggfunc='max' )
         pivDRS = dfDR.pivot_table(index=IndexCol,columns=ColumnsCol,values=['result_std_geomean'], aggfunc=lambda x: x.iloc[0] )
-        logger.info(f"[SumData by Structure] DR Pivot --> {len(pivDRF):_}")
-        
+        logger.info(f"[SumData by {prgArgs.index}] DR Pivot --> {len(pivDRF):_}")
         
         _colnames = []
         for col_idx in pivDRF.columns.to_flat_index():
@@ -95,7 +104,6 @@ def main(prgArgs):
                 _colnames.append(f"{col_idx[1]}_dr_xx")
         pivDRF.columns = _colnames
 
-
         _colnames = []
         for col_idx in pivDRS.columns.to_flat_index():
             if 'result_std_geomean' in col_idx:
@@ -105,33 +113,33 @@ def main(prgArgs):
         pivDRS.columns = _colnames
 
         # Merge PivTable ----------------------------------------------------------------------------------------
-        logger.info(f"[SumData by Structure] Merge Pivot ")
-        pivStruct = pd.merge(left=pivSCF, right=pivDRF, how= 'outer', on='structure_id')
-        pivStruct = pd.merge(left=pivStruct, right=pivDRS, how= 'outer', on='structure_id')
+        logger.info(f"[SumData by {prgArgs.index}] Merge Pivot ")
+        pivData = pd.merge(left=pivSCF, right=pivDRF, how= 'outer', on=IndexCol)
+        pivData = pd.merge(left=pivData, right=pivDRS, how= 'outer', on=IndexCol)
 
         # Add Properties  ----------------------------------------------------------------------------------------
-        logger.info(f"[SumData by Structure] Columns: {list(pivStruct.columns)}")
-        logger.info(f"[SumData by Structure] SC Add GN-Memb ")
-        pivStruct = pivStruct.apply(apply_sc_gnmemb,axis=1)
-        logger.info(f"[SumData by Structure] DR Add GN-Memb ")
-        pivStruct = pivStruct.apply(apply_dr_gnmemb,axis=1)
+        logger.info(f"[SumData by {prgArgs.index}] Columns: {list(pivData.columns)}")
+        logger.info(f"[SumData by {prgArgs.index}] SC Add GN-Memb ")
+        pivData = pivData.apply(apply_sc_gnmemb,axis=1)
+        logger.info(f"[SumData by {prgArgs.index}] DR Add GN-Memb ")
+        pivData = pivData.apply(apply_dr_gnmemb,axis=1)
         
         # Output ----------------------------------------------------------------------------------------
-        pivStruct = pivStruct.reindex(sorted(pivStruct.columns), axis=1) 
+        pivData = pivData.reindex(sorted(pivData.columns), axis=1) 
 
-        logger.info(f"[SumData by Structure] SC: {len(pivSCF):_} + DR: {len(pivDRF):_} --> {len(pivStruct):_}")
-        logger.info(f"[SumData by Structure] Columns: {list(pivStruct.columns)}")
-        csvFile = os.path.join(f"{BaseName}_byStructure.csv.gz")
-        logger.info(f"[SumData by Structure] --> {csvFile}")
-        pivStruct.to_csv(csvFile,compression='gzip')
+        logger.info(f"[SumData by {prgArgs.index}] SC: {len(pivSCF):_} + DR: {len(pivDRF):_} --> {len(pivData):_}")
+        logger.info(f"[SumData by {prgArgs.index}] Columns: {list(pivData.columns)}")
+        csvFile = os.path.join(f"{BaseName}_by{prgArgs.index}.csv.gz")
+        logger.info(f"[SumData by {prgArgs.index}] --> {csvFile}")
+        pivData.to_csv(csvFile,compression='gzip')
 
-        # xlsFile = os.path.join(f"{BaseName}_byStructure.xlsx")
-        # logger.info(f"[SumData by Structure] --> {xlsFile}")
+        # xlsFile = os.path.join(f"{BaseName}_by{prgArgs.index}.xlsx")
+        # logger.info(f"[SumData by {prgArgs.index}] --> {xlsFile}")
         # with pd.ExcelWriter(xlsFile) as writer:
-        #    pivStruct.to_excel(writer, sheet_name='Structures')
+        #    pivData.to_excel(writer, sheet_name={prgArgs.index})
 
         # if prgArgs.dataset == 'Current' and prgArgs.upload:
-        #     for idx, row in tqdm(pivStruct.iterrows(), total=len(pivStruct), desc = 'Upload pivStructure'):
+        #     for idx, row in tqdm(pivData.iterrows(), total=len(pivData), desc = 'Upload pivData'):
         #         i = 1
 
 #==============================================================================
@@ -146,6 +154,7 @@ if __name__ == "__main__":
     prgParser = configargparse.ArgumentParser(prog='upload_Django_Data', 
                                 description="Uploading data to adjCOADD from Oracle/Excel/CSV")
     prgParser.add_argument("-c","--dataset", default='Public',required=True, dest="dataset", action='store', help="Dataset")
+    prgParser.add_argument("-i","--index", default='Structure',required=True, dest="index", action='store', help="by Index")
     prgParser.add_argument("-o","--outdir",default=None,required=False, dest="outdir", action='store', help="Output Directory or Folder")
 #    prgParser.add_argument("--upload",default=False,required=False, dest="upload", action='store_true', help="Upload data to dj Database")
 #    prgParser.add_argument("--overwrite",default=False,required=False, dest="overwrite", action='store_true', help="Overwrite existing data")
