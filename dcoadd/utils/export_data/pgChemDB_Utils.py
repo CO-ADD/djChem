@@ -300,14 +300,48 @@ def apply_sc_gnmemb(s,iCutoff=25):
     
     for k in GNDict.keys():
         if GNDict[k][1] in s and GNDict[k][0] in s:
-            _diff = float(s[GNDict[k][1]]) - float(s[GNDict[k][0]])
-            if _diff > iCutoff:
+            _wt = float(s[GNDict[k][0]])
+            _mut = float(s[GNDict[k][1]])
+            if _wt < 0 :
+                _wt = 0
+
+            if _mut < 0 :
+                _mut = 0
+
+            if _wt > 100 :
+                _wt = 100
+
+            if _mut > 100 :
+                _mut = 100
+
+            if _mut - _wt > iCutoff:
                 # Efflux
                 s[f'{k}_sc_efflux'] = 1
             else:
                 # Penetrate
                 s[f'{k}_sc_efflux'] = 0
-                
+
+    if 'EcLpxC_sc_inhib' in s and 'EcTolC_sc_inhib' in s:
+            _lpxc = float(s['EcLpxC_sc_inhib'])
+            _tolc = float(s['EcTolC_sc_inhib'])
+            if _lpxc < 0 :
+                _w_lpxct = 0
+
+            if _tolc < 0 :
+                _tolc = 0
+
+            if _lpxc > 100 :
+                _lpxc = 100
+
+            if _tolc > 100 :
+                _tolc = 100
+
+            if abs(_tolc - _lpxc) > iCutoff:
+                # Efflux
+                s[f'EcMut_sc_sel'] = 1
+            else:
+                # Penetrate
+                s[f'EcMut_sc_sel'] = 0               
     return(s)
 
 
@@ -330,5 +364,13 @@ def apply_dr_gnmemb(s,pCutoff=0.2):
             else:
                 # Penetrate
                 s[f'{k}_dr_efflux'] = 0
-                
+
+    if 'EcLpxC_dr_inhib' in s and 'EcTolC_dr_inhib' in s:
+        if abs(float(s['EcLpxC_dr_inhib']) - float(s['EcTolC_dr_inhib'])) > pCutoff:
+            # Efflux
+            s[f'EcMut_dr_sel'] = 1
+        else:
+            # Penetrate
+            s[f'EcMut_dr_sel'] = 0
+
     return(s)
