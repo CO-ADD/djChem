@@ -153,8 +153,8 @@ if __name__ == "__main__":
     # ArgParser -------------------------------------------------------------
     prgParser = configargparse.ArgumentParser(prog='upload_Django_Data', 
                                 description="Uploading data to adjCOADD from Oracle/Excel/CSV")
-    prgParser.add_argument("-c","--dataset", default='Public',required=True, dest="dataset", action='store', help="Dataset")
-    prgParser.add_argument("-i","--index", default='Structure',required=True, dest="index", action='store', help="by Index")
+    prgParser.add_argument("-c","--dataset", default='Public',required=True, dest="dataset", action='store', help="Dataset [Public/Reported/Current]")
+    prgParser.add_argument("-i","--index", default='Structure',required=True, dest="index", action='store', help="by Index [Structure/Compound]")
     prgParser.add_argument("-o","--outdir",default=None,required=False, dest="outdir", action='store', help="Output Directory or Folder")
 #    prgParser.add_argument("--upload",default=False,required=False, dest="upload", action='store_true', help="Upload data to dj Database")
 #    prgParser.add_argument("--overwrite",default=False,required=False, dest="overwrite", action='store_true', help="Overwrite existing data")
@@ -170,7 +170,13 @@ if __name__ == "__main__":
     # prgParser.add_argument("--django",default='Local',required=False, dest="django", action='store', help="Django configuration [Meran/Laptop/Work]")
     # prgParser.add_argument("-c","--config",type=Path,is_config_file=True,help="Path to a configuration file ",)
 
-    prgArgs = prgParser.parse_args()
+    try:
+        prgArgs = prgParser.parse_args()
+    except:
+        prgParser.print_help()
+        print("- EXIT -----------------------------------------------------------")
+
+        sys.exit(0)
 
     if prgArgs:
         main(prgArgs)
