@@ -288,8 +288,9 @@ def get_DoseResponse_byCompound(DataSet='Public', ProjectTypes=['CO-ADD','WADI']
     return(qryDF)
 
 
+
 #-----------------------------------------------------------------------------
-def apply_sc_gnmemb(s,iCutoff=25):
+def apply_sc_gnmemb(s,iCutOff=25, dCutOff=25):
 #-----------------------------------------------------------------------------
     
     GNDict = {
@@ -299,7 +300,8 @@ def apply_sc_gnmemb(s,iCutoff=25):
         }
     
     for k in GNDict.keys():
-        if GNDict[k][1] in s and GNDict[k][0] in s:
+        # if GNDict[k][1] in s and GNDict[k][0] in s:
+        if not (pd.isnull(s[GNDict[k][1]]) or pd.isnull(s[GNDict[k][0]])):
             _wt = float(s[GNDict[k][0]])
             _mut = float(s[GNDict[k][1]])
             if _wt < 0 :
@@ -314,39 +316,57 @@ def apply_sc_gnmemb(s,iCutoff=25):
             if _mut > 100 :
                 _mut = 100
 
-            if _mut - _wt > iCutoff:
-                # Efflux
-                s[f'{k}_sc_efflux'] = 1
+            _diff = _mut - _wt
+            
+            if _mut < iCutOff and _wt < iCutOff:
+                # No Activity in either WT nor Mutant
+                s[f'{k}_sc_efflux'] = -1
             else:
-                # Penetrate
-                s[f'{k}_sc_efflux'] = 0
+                if _diff > dCutOff:
+                    # Mutant more active as WT -> Efflux
+                    s[f'{k}_sc_efflux'] = 1
+                elif _diff < -dCutOff:
+                    # WT more active as Mutant -> Efflux
+                    s[f'{k}_sc_efflux'] = 2
+                else:
+                    # Similar activity between Mutant and WT -> Penetrate
+                    s[f'{k}_sc_efflux'] = 0
+            s[f'{k}_sc_dmuwt'] = _diff
+        else:
+            s[f'{k}_sc_efflux'] = -9
+            s[f'{k}_sc_dmuwt'] = -9999
+    
+    if not (pd.isnull(s['EcLpxC_sc_inhib']) or pd.isnull(s['EcTolC_sc_inhib'])):        
+        _lpxc = float(s['EcLpxC_sc_inhib'])
+        _tolc = float(s['EcTolC_sc_inhib'])
+        if _lpxc < 0 :
+            _w_lpxct = 0
 
-    if 'EcLpxC_sc_inhib' in s and 'EcTolC_sc_inhib' in s:
-            _lpxc = float(s['EcLpxC_sc_inhib'])
-            _tolc = float(s['EcTolC_sc_inhib'])
-            if _lpxc < 0 :
-                _w_lpxct = 0
+        if _tolc < 0 :
+            _tolc = 0
 
-            if _tolc < 0 :
-                _tolc = 0
+        if _lpxc > 100 :
+            _lpxc = 100
 
-            if _lpxc > 100 :
-                _lpxc = 100
+        if _tolc > 100 :
+            _tolc = 100
 
-            if _tolc > 100 :
-                _tolc = 100
-
-            if abs(_tolc - _lpxc) > iCutoff:
-                # Efflux
+        if _tolc < iCutOff and _lpxc < iCutOff:
+            s[f'EcMut_sc_sel'] = -1 
+        else:  
+            if abs(_tolc - _lpxc) > dCutOff:
+                # Selective for LpxC or TolC activity
                 s[f'EcMut_sc_sel'] = 1
             else:
-                # Penetrate
-                s[f'EcMut_sc_sel'] = 0               
+                # Similar LpxC and TolC activity
+                s[f'EcMut_sc_sel'] = 0
+    else:
+        s[f'EcMut_sc_sel'] = -1                 
     return(s)
 
 
 #-----------------------------------------------------------------------------
-def apply_dr_gnmemb(s,pCutoff=0.2):
+def apply_dr_gnmemb(s,dCutoff=0.2,pCutOff=3.5):
 #-----------------------------------------------------------------------------
 
     GNDict = {
@@ -356,21 +376,37 @@ def apply_dr_gnmemb(s,pCutoff=0.2):
         }
     
     for k in GNDict.keys():
-        if GNDict[k][1] in s and GNDict[k][0] in s:
-            _diff = float(s[GNDict[k][1]]) - float(s[GNDict[k][0]])
-            if _diff > pCutoff:
-                # Efflux
-                s[f'{k}_dr_efflux'] = 1
+        if not (pd.isnull(s[GNDict[k][1]]) or pd.isnull(s[GNDict[k][0]])):
+            _mut = float(s[GNDict[k][1]])
+            _wt  = float(s[GNDict[k][0]])
+             
+            _diff = _mut - _wt
+            
+            if _mut < pCutOff and _wt < pCutOff:
+                # No Activity in either WT nor Mutant
+                s[f'{k}_dr_efflux'] = -1
             else:
-                # Penetrate
-                s[f'{k}_dr_efflux'] = 0
+                if _diff > dCutoff:
+                    # Mutant more active as WT -> Efflux
+                    s[f'{k}_dr_efflux'] = 1
+                elif _diff < -dCutoff:
+                    # WT more active as Mutant -> Efflux
+                    s[f'{k}_dr_efflux'] = 2
+                else:
+                    # Similar activity between Mutant and WT -> Penetrate
+                    s[f'{k}_dr_efflux'] = 0
+            
+        else:
+            s[f'{k}_dr_efflux'] = -9
 
-    if 'EcLpxC_dr_inhib' in s and 'EcTolC_dr_inhib' in s:
-        if abs(float(s['EcLpxC_dr_inhib']) - float(s['EcTolC_dr_inhib'])) > pCutoff:
+    if not (pd.isnull(s['EcLpxC_dr_pscore']) or pd.isnull(s['EcTolC_dr_pscore'])):
+        if abs(float(s['EcLpxC_dr_pscore']) - float(s['EcTolC_dr_pscore'])) > dCutoff:
             # Efflux
             s[f'EcMut_dr_sel'] = 1
         else:
             # Penetrate
             s[f'EcMut_dr_sel'] = 0
+    else:
+        s[f'EcMut_dr_sel'] = -1                 
 
     return(s)
