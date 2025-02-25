@@ -42,9 +42,9 @@ def main(prgArgs):
     if prgArgs.dataset in ['Public','Reported','Current'] and prgArgs.index in ['Structure','Compound']:
 
         if prgArgs.dataset in ['Public','Reported']:
-            BaseName = f'COADD_{prgArgs.dataset}2024'
+            BaseName = f'COADD_{prgArgs.dataset}2024_{logTime:%Y%m%d}'
         elif prgArgs.dataset == 'Current':
-            BaseName = f'COADD_{prgArgs.dataset}{logTime:%Y%m%d}'
+            BaseName = f'COADD_{prgArgs.dataset}_{logTime:%Y%m%d}'
         else:
             BaseName = f'COADD_{logTime:%Y%m%d%H%M}'
 
