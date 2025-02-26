@@ -190,7 +190,7 @@ def get_SingleConc_byCompound(DataSet='Public', ProjectTypes=['CO-ADD','WADI'], 
 #-----------------------------------------------------------------------------
 
     qrySQL = """
-        Select sc.compound_id, sc.assay_id, ass.assay_code, ass.sum_assay_code,
+        Select sc.compound_id, c.structure_id, sc.assay_id, ass.assay_code, ass.sum_assay_code,
             sc.n_assays, sc.n_actives, sc.act_types, sc.act_score,
             sc.inhibition_ave, sc.inhibition_std, sc.mscore_ave
         From  coadd.act_cmpd_sc sc
@@ -258,7 +258,7 @@ def get_DoseResponse_byCompound(DataSet='Public', ProjectTypes=['CO-ADD','WADI']
 #-----------------------------------------------------------------------------
 
     qrySQL = """
-        Select dr.compound_id, dr.assay_id, ass.assay_code, ass.sum_assay_code,
+        Select dr.compound_id, c.structure_id, dr.assay_id, ass.assay_code, ass.sum_assay_code,
             dr.result_type,
             dr.n_assays, dr.n_actives, dr.act_types, dr.act_score, dr.pscore,
             dr.result_median, dr.result_unit, dr.result_std_geomean, dr.result_std_unit, dr.inhibit_max_ave
