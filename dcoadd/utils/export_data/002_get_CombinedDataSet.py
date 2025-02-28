@@ -151,8 +151,7 @@ if __name__ == "__main__":
 
 
     # ArgParser -------------------------------------------------------------
-    prgParser = configargparse.ArgumentParser(prog='upload_Django_Data', 
-                                description="Uploading data to adjCOADD from Oracle/Excel/CSV")
+    prgParser = configargparse.ArgumentParser()
     prgParser.add_argument("-c","--dataset", default='Public',required=True, dest="dataset", action='store', help="Dataset [Public/Reported/Current]")
     prgParser.add_argument("-i","--index", default='Structure',required=True, dest="index", action='store', help="by Index [Structure/Compound]")
     prgParser.add_argument("-o","--outdir",default=None,required=False, dest="outdir", action='store', help="Output Directory or Folder")

@@ -336,11 +336,12 @@ def apply_sc_gnmemb(s,iCutOff=25, dCutOff=25):
             s[f'{k}_sc_efflux'] = -9
             s[f'{k}_sc_dmuwt'] = -9999
     
+    # Ec LpxC vs TolC Selectivity
     if not (pd.isnull(s['EcLpxC_sc_inhib']) or pd.isnull(s['EcTolC_sc_inhib'])):        
         _lpxc = float(s['EcLpxC_sc_inhib'])
         _tolc = float(s['EcTolC_sc_inhib'])
         if _lpxc < 0 :
-            _w_lpxct = 0
+            _lpxc = 0
 
         if _tolc < 0 :
             _tolc = 0
@@ -352,6 +353,7 @@ def apply_sc_gnmemb(s,iCutOff=25, dCutOff=25):
             _tolc = 100
 
         if _tolc < iCutOff and _lpxc < iCutOff:
+            # No Activity in either LpxC nor TolC 
             s[f'EcMut_sc_sel'] = -1 
         else:  
             if abs(_tolc - _lpxc) > dCutOff:
@@ -361,7 +363,7 @@ def apply_sc_gnmemb(s,iCutOff=25, dCutOff=25):
                 # Similar LpxC and TolC activity
                 s[f'EcMut_sc_sel'] = 0
     else:
-        s[f'EcMut_sc_sel'] = -1                 
+        s[f'EcMut_sc_sel'] = -9                 
     return(s)
 
 
@@ -400,13 +402,17 @@ def apply_dr_gnmemb(s,dCutoff=0.2,pCutOff=3.5):
             s[f'{k}_dr_efflux'] = -9
 
     if not (pd.isnull(s['EcLpxC_dr_pscore']) or pd.isnull(s['EcTolC_dr_pscore'])):
-        if abs(float(s['EcLpxC_dr_pscore']) - float(s['EcTolC_dr_pscore'])) > dCutoff:
-            # Efflux
-            s[f'EcMut_dr_sel'] = 1
+        if s['EcTolC_dr_pscore'] < pCutOff and s['EcLpxC_dr_pscore'] < pCutOff:
+            # No Activity in either LpxC nor TolC 
+            s['EcMut_dr_sel'] = -1
         else:
-            # Penetrate
-            s[f'EcMut_dr_sel'] = 0
+            if abs(float(s['EcLpxC_dr_pscore']) - float(s['EcTolC_dr_pscore'])) > dCutoff:
+                # Efflux
+                s['EcMut_dr_sel'] = 1
+            else:
+                # Penetrate
+                s['EcMut_dr_sel'] = 0
     else:
-        s[f'EcMut_dr_sel'] = -1                 
+        s['EcMut_dr_sel'] = -9                 
 
     return(s)
